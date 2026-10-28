@@ -303,6 +303,8 @@ tr.low td{background:var(--crit-soft)}
 .zbtn:hover .vimg{outline:2px solid var(--brand)}
 @media (pointer:coarse){input,select,textarea{font-size:16px!important}button{touch-action:manipulation}}
 body{padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-right);padding-bottom:env(safe-area-inset-bottom)}
+.det{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px;align-items:center}.det .zoom img{max-height:340px}.det-price{font-size:34px;font-weight:800;margin:10px 0}.det-spec{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;color:var(--muted)}.det-spec b{color:var(--ink,inherit)}@media (max-width:600px){.det{grid-template-columns:1fr}}
+.cf-tot{display:grid;grid-template-columns:1fr auto;gap:6px;margin-top:14px;padding-top:12px;border-top:1px solid var(--line)}.cf-tot .big{font-size:24px;font-weight:800}
 .rgf{display:flex;flex-wrap:wrap;gap:6px}.rg-list{margin-top:8px}.rg-d{font-weight:600;margin:14px 0 4px;color:var(--muted)}.rg{display:grid;grid-template-columns:48px 110px 1fr;gap:10px;align-items:start;padding:7px 0;border-bottom:1px solid var(--line)}.rg .pill{justify-self:start}@media (max-width:600px){.rg{grid-template-columns:44px 1fr}.rg>span:last-child{grid-column:1/-1}}
 .ask3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:10px}.ask3 .btn{display:flex;flex-direction:column;gap:4px;padding:16px 10px;font-size:16px;height:auto}@media (max-width:600px){.ask3{grid-template-columns:1fr}}
 .zoom{background:#fff;border-radius:12px;border:1px solid var(--line);display:grid;place-items:center;min-height:200px}
@@ -561,8 +563,8 @@ function basket(pick,R){
 
 let lastSave=0;
 function save(force){const n=performance.now();if(!force&&n-lastSave<1500)return;lastSave=n;try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
-const VIEWS=BETA?["resumen","caja","lector","inventario","pedidos","reposiciones","avisos","ajustes"]:["directo","resumen","caja","lector","inventario","pedidos","reposiciones","avisos"];
-let view=BETA?"resumen":"directo",invEdit=false,invPend={},selAlert=null,invFilter="todos",invCat="",invQ="",posQ="",confirmReset=false,linkQ="";
+const VIEWS=BETA?["caja","lector","inventario","pedidos","reposiciones","avisos","ajustes","resumen"]:["directo","resumen","caja","lector","inventario","pedidos","reposiciones","avisos"];
+let view=BETA?"caja":"directo",invEdit=false,invPend={},selAlert=null,invFilter="todos",invCat="",invQ="",posQ="",confirmReset=false,linkQ="";
 const flash={};
 try{const h=location.hash.replace("#","");if(VIEWS.includes(h))view=h}catch(e){}
 
@@ -644,12 +646,27 @@ function check(v,when){
   log("aviso",`Aviso a Jose por WhatsApp y email: ${lab(v)}, quedan ${v.stock}`,when);
 }
 
-function sell(its,pay,when){
+let discTxt="";
+function cartSub(){return round(S.cart.reduce((a,i)=>a+i.qty*V(i.vid).price,0))}
+// "10%" = porcentaje · "5" o "5,50" = euros · vacío = sin descuento · -1 = no válido
+function discOf(sub){const x=discTxt.trim().replace(",",".");if(!x)return 0;const m=x.match(/^(\d+(?:\.\d+)?)\s*(%|€)?$/);if(!m)return-1;const n=parseFloat(m[1]);const dc=m[2]==="%"?round(sub*n/100):round(n);return dc>sub||(m[2]==="%"&&n>100)?-1:dc}
+function openConfirm(){const sub=cartSub(),dc=discOf(sub);
+  modal(`<h2>Confirmar venta</h2>
+  <div class="list">${S.cart.map(i=>{const v=V(i.vid);return`<div class="tl"><span class="cell-p">${im(imgOf(v),"vimg")}<span>${esc(lab(v))}<div class="sku num">${money(v.price)} / ud</div></span></span><span class="qty"><button data-cfq="${v.id}|-1" aria-label="Una menos">−</button><span class="num">${i.qty}</span><button data-cfq="${v.id}|1" aria-label="Una más" ${i.qty>=avail(v)?"disabled":""}>+</button></span><b class="num">${money(i.qty*v.price)}</b></div>`}).join("")}</div>
+  <div class="actions" style="margin-top:8px"><button class="btn sm" data-act="cfAdd">Añadir más productos</button></div>
+  <label class="field"><span class="label">Descuento</span><input id="cfDisc" value="${esc(discTxt)}" placeholder="Ej.: 5 (euros) o 10% " inputmode="decimal" autocomplete="off"></label>
+  <div class="cf-tot"><span>Subtotal</span><b class="num">${money(sub)}</b>
+  <span>Descuento</span><b class="num" id="cfD">${dc<0?"no válido":dc?"−"+money(dc):"—"}</b>
+  <span class="big">Total</span><b class="num big" id="cfT">${money(dc>0?sub-dc:sub)}</b></div>
+  <div class="actions"><button class="btn primary" data-act="cfOk">Confirmar venta</button><button class="btn ghost" data-act="cfCancel">Cancelar venta</button></div>`);
+  const inp=$("#cfDisc");if(inp)inp.addEventListener("input",()=>{discTxt=inp.value;const s2=cartSub(),d2=discOf(s2);$("#cfD").textContent=d2<0?"no válido":d2?"−"+money(d2):"—";$("#cfT").textContent=money(d2>0?s2-d2:s2)})}
+function sell(its,pay,when,disc){
   when=when||now();
   const t={id:"T"+(S.seq++),t:when,items:its.map(i=>({vid:i.vid,qty:i.qty,price:V(i.vid).price})),pay,total:0};
-  t.total=round(t.items.reduce((a,i)=>a+i.qty*i.price,0));
+  const sub=round(t.items.reduce((a,i)=>a+i.qty*i.price,0));disc=disc>0?Math.min(disc,sub):0;
+  t.total=round(sub-disc);if(disc){t.disc=disc;t.df=sub?t.total/sub:1}
   S.tickets.push(t);
-  log("venta",`${money(t.total)} · ${t.pay} · ${t.items.map(i=>i.qty+"× "+lab(V(i.vid))).join(", ")}`,when);
+  log("venta",`${money(t.total)}${disc?` (descuento ${money(disc)})`:""} · ${t.pay} · ${t.items.map(i=>i.qty+"× "+lab(V(i.vid))).join(", ")}`,when);
   log("stock","",when,t.items.reduce((a,i)=>a+i.qty,0));
   t.items.forEach(i=>{const v=V(i.vid);v.stock=Math.max(0,v.stock-i.qty);check(v,when)});
   return t;
@@ -723,6 +740,7 @@ function handleScan(code){
   const v=byCode(code);
   if(!v){openLink(code);return}
   if(view==="reposiciones"&&S.repo.method==="lector"){repoAdd(v.id,1);S.lastScan={code,vid:v.id,t:Date.now(),mode:"repo",msg:""};toast(`+1 ${lab(v)} · llevas ${S.repo.lines.find(l=>l.vid===v.id).qty}`);render();return}
+  if(view==="caja"){openDetail(v);return}
   if(view!=="lector"){askScan(v,code);return}
   const mode=S.mode;let msg="";
   if(mode==="vender"){if(addToCart(v,1))msg=`Añadido al ticket: ${lab(v)} · ${money(v.price)}`}
@@ -741,11 +759,12 @@ function askScan(v,code){scanAsk=v.id;const def=view==="caja"?"venta":view==="re
 function doAsk(k){const v=scanAsk&&V(scanAsk);scanAsk=null;closeModal();if(!v)return;
   if(view==="inventario"&&Object.keys(invPend).length)toast("Tienes cambios de stock sin guardar en Inventario");
   if(k==="muestra"){openZoom(v);return}
-  if(k==="venta"){if(addToCart(v,1)){view="caja";toast(`Añadido a la caja: ${lab(v)} · ${money(v.price)}`)}render();window.scrollTo(0,0);return}
+  if(k==="venta"){view="caja";render();window.scrollTo(0,0);openDetail(v);return}
   repoAdd(v.id,1);S.repo.method="lector";view="reposiciones";render();window.scrollTo(0,0);toast(`+1 ${lab(v)} en la reposición`)}
 document.addEventListener("keydown",e=>{if(!scanAsk||!document.querySelector(".ask3")||e.defaultPrevented)return;
   if(e.key==="Enter"){const b=document.querySelector(".ask3 [data-def]");if(b){e.preventDefault();doAsk(b.dataset.sa)}return}
   const i="123".indexOf(e.key);if(i<0)return;const st=kb.last;setTimeout(()=>{if(kb.last===st&&scanAsk&&document.querySelector(".ask3"))doAsk(["muestra","venta","repo"][i])},90)});
+document.addEventListener("keydown",e=>{if(e.key!=="Enter"||e.defaultPrevented)return;const b=document.querySelector("#layer [data-addok]:not([disabled])");if(b&&!(e.target&&e.target.tagName==="BUTTON")){e.preventDefault();b.click()}});
 function applyCount(){
   const ids=Object.keys(S.count);if(!ids.length)return;
   let diff=0;
@@ -844,7 +863,7 @@ function closeModal(){stopCamera();$("#layer").innerHTML=""}
 function renderTabs(){
   const drafts=S.orders.filter(o=>o.status==="borrador"&&o.lines.length).length;
   const unread=S.alerts.filter(a=>!a.read).length;
-  const T=[["directo","En directo",0],["resumen","Resumen",0],["caja","Caja",S.cart.reduce((a,i)=>a+i.qty,0)],["lector","Lector",0],["inventario","Inventario",0],["pedidos","Pedidos",drafts],["reposiciones","Reposiciones",S.orders.filter(o=>o.status==="enviado").length],["avisos",BETA?"Registro":"Avisos",BETA?0:unread],["ajustes","Ajustes",0]].filter(x=>VIEWS.includes(x[0]));
+  const T=[["directo","En directo",0],["resumen","Resumen",0],["caja","Caja",S.cart.reduce((a,i)=>a+i.qty,0)],["lector","Lector",0],["inventario","Inventario",0],["pedidos","Pedidos",drafts],["reposiciones","Reposiciones",S.orders.filter(o=>o.status==="enviado").length],["avisos",BETA?"Registro":"Avisos",BETA?0:unread],["ajustes","Ajustes",0]].filter(x=>VIEWS.includes(x[0])).sort((a,b)=>VIEWS.indexOf(a[0])-VIEWS.indexOf(b[0]));
   $("#tabs").innerHTML=T.map(([k,l,b])=>`<button data-view="${k}" ${view===k?'aria-current="page"':""}>${l}${b?`<span class="badge">${b>99?"99+":b}</span>`:""}</button>`).join("");
   if(BETA){const days=S.lastBackup?Math.floor((Date.now()-S.lastBackup)/DAY):null;$("#hclock").innerHTML=`<i class="run"></i>${esc(longDate(Date.now()))} · ${hm(Date.now())}${days==null?" · <b>sin copia de seguridad</b>":days>=7?` · <b>copia de hace ${days} días</b>`:""}`;return}
   $("#hclock").innerHTML=`<i class="${S.sim.running?"run":""}"></i>${S.sim.running?"Simulación en marcha":"Simulación en pausa"} · ${esc(shortDate(now()))} ${hm(now())}`;
@@ -976,9 +995,16 @@ function vCaja(){
     </aside>
   </div>`;
 }
+function openDetail(v,fromList){if(!v)return;const src=bigImg(v);const inC=(S.cart.find(i=>i.vid===v.id)||{qty:0}).qty;const left=avail(v)-inC;
+  modal(`<div class="det"><div class="zoom">${src?`<img src="${src}" alt="${esc(lab(v))}" onerror="this.style.display='none'">`:`<p class="empty">Sin foto</p>`}</div>
+  <div><h2 style="margin:0">${esc(v.name)}</h2>${v.flavor?`<p style="margin:4px 0 0;font-size:18px">${esc(v.flavor)}</p>`:""}
+  <p class="det-price num">${money(v.price)}</p>
+  <div class="det-spec"><span>Categoría</span><b>${esc(CATS[v.cat])}</b><span>Código</span><b class="num">${v.codes.length?esc(v.codes[0]):"sin código"}</b><span>Stock</span><b class="num">${v.inited||!BETA?v.stock+" uds":"sin contar"}</b>${inC?`<span>En el ticket</span><b class="num">${inC}</b>`:""}</div></div></div>
+  <div class="actions"><button class="btn primary" data-addok="${v.id}" ${left<=0?"disabled":""}>${left<=0?"Agotado":"Añadir al ticket"}</button><button class="btn" ${fromList?`data-back="${v.id}"`:'data-act="closeModalBtn"'}>Atrás</button></div>
+  <p class="note">Intro también añade al ticket.</p>`)}
 function openProduct(p){
   const vs=p.vids.map(V);
-  if(vs.length===1){if(addToCart(vs[0],1)){render();toast(`Añadido: ${lab(vs[0])}`)}return}
+  if(vs.length===1){openDetail(vs[0]);return}
   const mixed=vs.some(x=>x.price!==vs[0].price);
   modal(`<h2>${esc(p.name)}</h2><p class="muted" style="margin:0">Elige el sabor o formato. ${priceTag(p)}</p>
   <div class="flavors">${vs.map(v=>{const inC=(S.cart.find(i=>i.vid===v.id)||{qty:0}).qty;const left=avail(v)-inC;return`<button class="fl" data-addv="${v.id}" ${left<=0?"disabled":""}>${im(imgOf(v),"flimg")}<b>${esc(v.flavor)}</b><span class="small muted num">${left<=0?"Agotado":left+" uds"}${mixed?" · "+money(v.price):""}</span>${v.stock<=v.min&&left>0?`<span class="pill warn" style="justify-self:start">Queda poco</span>`:""}</button>`}).join("")}</div>
@@ -1192,7 +1218,7 @@ function periodLabel(p,a,b){if(p==="dia"){const s=longDate(a);return s.charAt(0)
   if(p==="semana")return`Semana del ${shortDate(a)} al ${shortDate(b-1)}`;const s=new Date(a).toLocaleDateString("es-ES",{month:"long",year:"numeric"});return s.charAt(0).toUpperCase()+s.slice(1)}
 function stats(a,b){const ts=S.tickets.filter(t=>t.t>=a&&t.t<b);let total=0,units=0,margin=0,costSales=0;const byP={},byC={},byH=Array(24).fill(0),byD={};
   ts.forEach(t=>{total+=t.total;const h=new Date(t.t).getHours();byH[h]+=t.total;const k=dayKey(t.t);byD[k]=(byD[k]||0)+t.total;
-    t.items.forEach(i=>{const v=V(i.vid);if(!v)return;const e=i.qty*i.price;units+=i.qty;const P=byP[i.vid]||(byP[i.vid]={q:0,e:0});P.q+=i.qty;P.e+=e;byC[v.cat]=(byC[v.cat]||0)+e;if(v.cost!=null){margin+=e/(1+((S.biz||{}).iva||21)/100)-i.qty*v.cost;costSales+=e}})});
+    t.items.forEach(i=>{const v=V(i.vid);if(!v)return;const e=i.qty*i.price*(t.df||1);units+=i.qty;const P=byP[i.vid]||(byP[i.vid]={q:0,e:0});P.q+=i.qty;P.e+=e;byC[v.cat]=(byC[v.cat]||0)+e;if(v.cost!=null){margin+=e/(1+((S.biz||{}).iva||21)/100)-i.qty*v.cost;costSales+=e}})});
   return{ts,n:ts.length,total:round(total),units,avg:ts.length?total/ts.length:0,upt:ts.length?units/ts.length:0,margin:round(margin),costShare:total?costSales/total:0,byP,byC,byH,byD}}
 function delta(c,p){if(!p)return"";const d=(c-p)/p*100;if(!isFinite(d))return"";return`<span class="pill ${d>=0?"ok":"crit"}">${d>=0?"+":""}${Math.round(d)} %</span>`}
 function bars(labels,vals,hi){const W=640,H=200,L=52,B=24,max=Math.max(...vals,1),step=Math.max(10,Math.ceil(max/4/10)*10),top=step*4,bw=(W-L-8)/labels.length;
@@ -1264,7 +1290,7 @@ function ecDraw(){const q=ecQ.trim().toLowerCase();if(q.length<2)return`<p class
   const res=S.items.filter(v=>lab(v).toLowerCase().includes(q)||v.codes.some(c=>c.includes(q))).slice(0,12);
   return res.map(v=>`<button class="fl" data-ecadd="${v.id}" style="width:100%;grid-template-columns:auto 1fr auto;display:grid;align-items:center;gap:10px">${im(imgOf(v),"vimg")}<span><b>${esc(lab(v))}</b></span><span class="tag num">${money(v.price)}</span></button>`).join("")||`<p class="muted small">No hay coincidencias.</p>`}
 function ecStock(v,d){if(!v||(BETA&&!v.inited))return;v.stock=Math.max(0,v.stock+d);if(v.stock>v.min)v.alerted=false;else check(v)}
-function ecTotal(t){t.total=round(t.items.reduce((a,i)=>a+i.qty*i.price,0))}
+function ecTotal(t){const sub=round(t.items.reduce((a,i)=>a+i.qty*i.price,0));const dc=Math.min(t.disc||0,sub);t.total=round(sub-dc);if(t.disc){t.disc=dc;t.df=sub?t.total/sub:1}}
 function openCerrarCaja(){const st=stats(dayStart(now()),dayStart(now())+DAY);const c=closeRec(dayKey(now()));
   modal(`<h2>Cerrar caja</h2><p class="muted" style="margin:0">${esc(periodLabel("dia",dayStart(now())))}. Se guarda en el historial y en las estadísticas.</p>
   <div class="kpis" style="grid-template-columns:repeat(3,minmax(0,1fr));margin:14px 0"><div class="kpi"><span class="label">Ventas</span><b class="num">${money(st.total)}</b></div><div class="kpi"><span class="label">Tickets</span><b class="num">${st.n}</b></div><div class="kpi"><span class="label">Unidades</span><b class="num">${st.units}</b></div></div>
@@ -1312,7 +1338,7 @@ function openTicket(t){
   modal(`<div id="tk"><h4>${esc(B.name||"Puro Sabor Fit")}</h4>${B.nif?`<p>NIF ${esc(B.nif)}</p>`:""}${B.addr?`<p>${esc(B.addr)}</p>`:""}
   <p style="margin-top:6px">Factura simplificada <b>${t.inv}</b></p><p>${esc(shortDate(t.t))} ${hm(t.t)}</p>${t.cli?`<p>Cliente: ${esc(t.cli)}</p>`:""}
   <table>${t.items.map(i=>`<tr><td>${i.qty} × ${esc(lab(V(i.vid)))}</td><td class="r num">${money(i.qty*i.price)}</td></tr>`).join("")}
-  <tr><td>Base imponible</td><td class="r num">${money(base)}</td></tr><tr><td>IVA ${iva} %</td><td class="r num">${money(round(t.total-base))}</td></tr>
+  ${t.disc?`<tr><td>Subtotal</td><td class="r num">${money(t.total+t.disc)}</td></tr><tr><td>Descuento</td><td class="r num">−${money(t.disc)}</td></tr>`:""}<tr><td>Base imponible</td><td class="r num">${money(base)}</td></tr><tr><td>IVA ${iva} %</td><td class="r num">${money(round(t.total-base))}</td></tr>
   <tr class="tot"><td>TOTAL</td><td class="r num">${money(t.total)}</td></tr></table><p>Gracias por su compra</p></div>
   <label class="field noprint"><span class="label">Cliente (nombre y NIF), solo si pide factura con sus datos</span><input id="tkCli" value="${esc(t.cli||"")}" placeholder="Opcional"></label>
   <div class="actions noprint"><button class="btn primary" data-act="print">Imprimir</button><button class="btn" data-act="closeModalBtn">Cerrar</button></div>
@@ -1516,7 +1542,9 @@ document.addEventListener("click",e=>{
   if(d.act==="clearCount"){S.count={};render();return}
   if(d.cat){S.cat=d.cat;render();return}
   if(d.prod){openProduct(PR(d.prod));return}
-  if(d.addv){const v=V(d.addv);if(addToCart(v,1)){closeModal();render();toast(`Añadido: ${lab(v)}`)}return}
+  if(d.addv){openDetail(V(d.addv),true);return}
+  if(d.addok){const v=V(d.addok);if(addToCart(v,1)){closeModal();render();toast(`Añadido al ticket: ${lab(v)} · ${money(v.price)}`)}return}
+  if(d.back){const v=V(d.back);closeModal();if(v)openProduct(PR(v.pid));return}
   if(d.inc){addToCart(V(d.inc),1);render();return}
   if(d.dec){const i=S.cart.find(x=>x.vid===d.dec);if(i){i.qty--;if(!i.qty)S.cart=S.cart.filter(x=>x!==i)}render();return}
   if(d.pay){S.pay=d.pay;render();return}
@@ -1524,7 +1552,12 @@ document.addEventListener("click",e=>{
   if(d.act==="charge"){
     S.cart=S.cart.map(i=>({vid:i.vid,qty:Math.min(i.qty,avail(V(i.vid)))})).filter(i=>i.qty>0);
     if(!S.cart.length){render();toast("Esos productos se han agotado mientras tanto");return}
-    const n=S.alerts.length;const t=sell(S.cart,S.pay);S.cart=[];const nv=S.alerts.length-n;render();toast(`Venta registrada · ${money(t.total)}`+(nv?" · aviso de stock bajo":""));openTicket(t);return}
+    discTxt="";openConfirm();return}
+  if(d.cfq){const[vid,n]=d.cfq.split("|");const i=S.cart.find(x=>x.vid===vid);if(i){i.qty=Math.max(0,Math.min(i.qty+ +n,avail(V(vid))));if(!i.qty)S.cart=S.cart.filter(x=>x!==i)}render();if(!S.cart.length){closeModal();return}openConfirm();return}
+  if(d.act==="cfAdd"){closeModal();render();const q=$("#posQ");if(q)q.focus();toast("Añade productos y vuelve a pulsar «Registrar venta»");return}
+  if(d.act==="cfCancel"){closeModal();render();toast("Venta cancelada · el ticket sigue sin registrar");return}
+  if(d.act==="cfOk"){const sub=cartSub(),dc=discOf(sub);if(dc<0){toast("Descuento no válido");return}
+    const t=sell(S.cart,S.pay,null,dc);S.cart=[];render();toast(`Venta registrada · ${money(t.total)}`);openTicket(t);return}
   if(d.ticket){const t=S.tickets.find(x=>x.id===d.ticket);if(t)openTicket(t);return}
   if(d.act==="print"){const c=$("#tkCli");if(c&&printT){printT.cli=c.value.trim();save(true)}try{window.print()}catch(e){toast("No se ha podido abrir la impresión")}return}
   if(d.act==="undo"){undoLast();render();return}
