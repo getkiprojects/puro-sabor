@@ -1,0 +1,12 @@
+PURO SABOR FIT · GESTIÓN — paquete para GitHub Pages (iPad)
+
+Sube TODO el contenido de esta carpeta a tu repositorio, respetando la carpeta "ocr":
+  index.html, sw.js, manifest.webmanifest, icon-192.png, icon-512.png, apple-touch-icon.png
+  ocr/  (con sus subcarpetas core/ y lang/)  ← lectura de albaranes por foto y PDF, sin internet
+No hace falta subir este LEEME.
+
+La carpeta ocr pesa unos 10 MB. El iPad la descarga una vez (con internet) y luego
+funciona sin conexión. Los programas de lectura son tesseract.js (licencia Apache 2.0).
+
+Para actualizar más adelante normalmente basta con subir solo el index.html nuevo.
+Tus datos (ventas, stock) no se tocan: están dentro del iPad.
