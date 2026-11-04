@@ -1,0 +1,19 @@
+PURO SABOR FIT · GESTIÓN — repositorio de GitHub Pages
+
+Sube TODO lo que hay en esta carpeta, tal cual, respetando las carpetas:
+
+  index.html
+  sw.js
+  manifest.webmanifest
+  icon-192.png
+  icon-512.png
+  apple-touch-icon.png
+  ocr/
+     pdf.min.js, pdf.worker.min.js, tesseract.min.js, worker.min.js, LICENSE-*.txt
+     core/   tesseract-core-lstm.wasm.js, tesseract-core-simd-lstm.wasm.js
+     lang/   spa.traineddata.gz
+
+No subas el .bat (es solo para el portátil) ni archivos sueltos de ocr en la raíz.
+Este LEEME no hace falta subirlo.
+
+Para actualizar más adelante: sube solo el index.html nuevo encima del anterior.
