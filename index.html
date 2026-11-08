@@ -328,7 +328,8 @@ body:has(.tkback) header.top{z-index:16;position:relative}
 .pos.cat{grid-template-columns:minmax(0,1.1fr) minmax(0,1fr)}.scase{min-height:420px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px;align-items:start;position:sticky;top:12px}.scase.empty{display:grid;place-items:center}
 .sc-img{background:#fff;border-radius:14px;padding:10px;display:grid;place-items:center;min-height:300px}.sc-img img{max-width:100%;max-height:440px;object-fit:contain}.sc-info h2{margin:0;font-size:26px}.sc-fl{margin:2px 0 0;font-size:19px}.sc-price{font-size:44px;font-weight:800;margin:8px 0 2px}
 .sc-empty{text-align:center;color:var(--muted);max-width:360px;margin:auto}.big-ico{font-size:54px;margin:0 0 6px}
-.pos.vt{grid-template-columns:minmax(0,1fr) 340px}.vt-head{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;padding-bottom:14px;border-bottom:2px solid var(--line);margin-bottom:6px}.vt-total{font-size:48px;font-weight:800;line-height:1}.vt-save{color:#1F8A4C;font-weight:700}
+.pos.vt{grid-template-columns:minmax(0,1fr) 340px}.vt-tot-box{text-align:right}.vt-sub{font-size:16px;color:var(--muted)}
+.vt-reg{display:grid;grid-template-columns:minmax(0,1fr) 78px;gap:8px;align-items:stretch;margin-top:10px}.vt-reg .pay{margin-top:0}.vt-disc{display:flex;align-items:center;gap:4px;border:1px dashed var(--brand);border-radius:12px;padding:0 8px;background:rgba(29,78,137,.06)}.vt-disc input{width:100%;border:0;background:transparent;font:inherit;font-size:18px;font-weight:700;text-align:right;outline:none}.vt-disc span{font-weight:700;color:var(--brand)}.vt-head{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;padding-bottom:14px;border-bottom:2px solid var(--line);margin-bottom:6px}.vt-total{font-size:48px;font-weight:800;line-height:1}.vt-save{color:#1F8A4C;font-weight:700}
 .vt-row{display:grid;grid-template-columns:72px minmax(0,1fr) auto auto;gap:14px;align-items:center;padding:14px 0;border-bottom:1px solid var(--line)}.vt-img{width:72px;height:72px;object-fit:contain;border-radius:10px;background:#fff}.vt-txt b{font-size:17px}.vt-dto{color:#1F8A4C;font-size:13px;font-weight:600;margin-top:4px}
 .vt-qty{display:flex;align-items:center;gap:6px}.vt-qty button{width:40px;height:38px;font-size:20px;border:1px solid var(--line);border-radius:10px;background:var(--surface);cursor:pointer}.vt-qty b{min-width:28px;text-align:center;font-size:18px}.vt-price{text-align:right;min-width:96px}.vt-price b{font-size:19px;display:block}.vt-price .webp{margin:0;display:block}
 @media (max-width:900px){.pos.cat,.pos.vt{grid-template-columns:minmax(0,1fr)}.scase{position:static;grid-template-columns:1fr}.vt-row{grid-template-columns:56px minmax(0,1fr) auto}.vt-price{grid-column:2/-1;text-align:left}}
@@ -694,7 +695,7 @@ function sell(its,pay,when,disc){
   const sub=round(t.items.reduce((a,i)=>a+i.qty*i.price,0));disc=disc>0?Math.min(disc,sub):0;
   t.total=round(sub-disc);if(disc){t.disc=disc;t.df=sub?t.total/sub:1}
   S.tickets.push(t);
-  log("venta",`${money(t.total)}${disc?` (competidor −${money(disc)})`:""} · ${t.pay} · ${t.items.map(i=>i.qty+"× "+lab(V(i.vid))).join(", ")}`,when);
+  log("venta",`${money(t.total)}${disc?` (descuento ${money(disc)})`:""} · ${t.pay} · ${t.items.map(i=>i.qty+"× "+lab(V(i.vid))).join(", ")}`,when);
   log("stock","",when,t.items.reduce((a,i)=>a+i.qty,0));
   t.items.forEach(i=>{const v=V(i.vid);v.stock=Math.max(0,v.stock-i.qty);check(v,when)});
   return t;
@@ -1028,7 +1029,8 @@ function webNote(v){if(!v)return"";const w=WEBO[v.pid];if(!w||w>=v.price)return"
 const webTag=w=>w?` <s class="webp num" title="Precio en la web de la marca (sin descuentos)">${money(w)}</s>`:"";
 function priceTag(p){const vs=p.vids.map(V);const ps=vs.map(v=>v.price);const mn=Math.min(...ps),mx=Math.max(...ps);const vmin=vs.find(v=>v.price===mn);return`<span class="tag num">${mn!==mx?"<small>desde</small>":""}${money(mn)}</span>${webPrice(vmin)?`<span class="wpbox"><b class="dto">−${pctOff(vmin,webPrice(vmin))} %</b>${webTag(webPrice(vmin))}</span>`:""}${webNote(vmin)}`}
 let ticketBig=false;
-let showVid=null,scTab=null,vtQ="";
+let showVid=null,scTab=null,vtQ="",vtDisc="";
+const vtPct=()=>{const n=parseFloat(String(vtDisc).replace(",","."));return isFinite(n)&&n>0&&n<=100?n:0};
 function showcase(v){if(!v)return;showVid=v.id;scTab=null;view="caja";render();const el=$("#scase");if(el&&innerWidth<900)el.scrollIntoView({block:"start"})}
 function vCatalogo(){
   const cats=["Todos",...CATS];const q=posQ.trim().toLowerCase();
@@ -1054,13 +1056,14 @@ function vCatalogo(){
     </section>
   </div>`}
 function vVenta(){
-  const n=S.cart.reduce((a,i)=>a+i.qty,0),tot=S.cart.reduce((a,i)=>a+i.qty*V(i.vid).price,0),pvp=S.cart.reduce((a,i)=>{const v=V(i.vid);return a+i.qty*(webPrice(v)||v.price)},0);
+  const n=S.cart.reduce((a,i)=>a+i.qty,0),sub=round(S.cart.reduce((a,i)=>a+i.qty*V(i.vid).price,0)),pvp=S.cart.reduce((a,i)=>{const v=V(i.vid);return a+i.qty*(webPrice(v)||v.price)},0);
+  const pct=vtPct(),dsc=round(sub*pct/100),tot=round(sub-dsc),ahorro=round(pvp-tot);
   const q=vtQ.trim().toLowerCase();const ws=q.split(/\s+/).filter(Boolean);const res=q.length<2?[]:S.items.filter(v=>{const L=lab(v).toLowerCase();return ws.every(w=>L.includes(w))||v.codes.some(c=>c.includes(q))}).slice(0,12);
   const ts=todays().slice(-5).reverse();
   return `<div class="view-head"><div><h2>Venta</h2><p>Pasa los productos por el lector y se van sumando. Esta pantalla está pensada para que la vea el cliente.</p></div><span class="sp"></span><button class="btn" data-act="editCaja">Editar caja</button></div>
   <div class="pos vt">
     <section class="panel vt-main">
-      <div class="vt-head"><div><span class="label">Total estimado</span><div class="muted">${n} producto${n!==1?"s":""}${pvp>tot+0.005?` · <span class="vt-save">ahorro ${money(pvp-tot)}</span>`:""}</div></div><div class="vt-total num">${money(tot)}</div></div>
+      <div class="vt-head"><div><span class="label">Total estimado</span><div class="muted">${n} producto${n!==1?"s":""}${ahorro>0.005?` · <span class="vt-save">ahorro ${money(ahorro)}</span>`:""}</div></div><div class="vt-tot-box">${dsc?`<div class="vt-sub num"><s>${money(sub)}</s> <span class="vt-save">−${pct} %</span></div>`:""}<div class="vt-total num">${money(tot)}</div></div></div>
       <div class="vt-list">${S.cart.length?S.cart.map(i=>{const v=V(i.vid),w=webPrice(v);return`<div class="vt-row">${im(imgOf(v),"vt-img")}<div class="vt-txt"><b>${esc(v.name)}</b>${v.flavor?`<div class="muted">${esc(v.flavor)}</div>`:""}${v.codes.length?`<div class="muted small num">Código: ${esc(v.codes[0])}</div>`:""}${w?`<div class="vt-dto">🏷 ${pctOff(v,w)} % de descuento aplicado</div>`:""}</div>
         <div class="vt-qty"><button data-dec="${v.id}" aria-label="Una menos">−</button><b class="num">${i.qty}</b><button data-inc="${v.id}" aria-label="Una más" ${i.qty>=avail(v)?"disabled":""}>+</button></div>
         <div class="vt-price num"><b>${money(v.price*i.qty)}</b>${w?`<s class="webp">${money(w*i.qty)}</s>`:""}${i.qty>1?`<div class="muted small">${money(v.price)} / ud</div>`:""}</div></div>`}).join(""):`<div class="sc-empty"><p class="big-ico" aria-hidden="true">🛒</p><p><b>Todavía no hay productos.</b><br>Pasa uno por el lector o búscalo a la derecha.</p></div>`}</div>
@@ -1070,7 +1073,7 @@ function vVenta(){
       <input class="search" id="vtQ" type="search" placeholder="Buscar producto, sabor o código" value="${esc(vtQ)}" aria-label="Buscar producto para añadir" autocomplete="off">
       ${res.length?`<div class="plist">${res.map(v=>`<button class="fl" data-vtadd="${v.id}" ${avail(v)<=0?"disabled":""}><span class="cell-p">${im(imgOf(v),"vimg")}<span>${esc(v.name)}<div class="sku">${esc(v.flavor)||CATS[v.cat]} · ${money(v.price)}</div></span></span></button>`).join("")}</div>`:q.length>=2?`<p class="muted small">Nada con ese nombre.</p>`:""}
       <div class="seg full" role="group" aria-label="Forma de pago" style="margin-top:14px">${["Efectivo","Tarjeta","Bizum"].map(m=>`<button data-pay="${m}" aria-pressed="${S.pay===m}">${m}</button>`).join("")}</div>
-      <button class="btn primary pay" data-act="charge" ${S.cart.length?"":"disabled"}>Registrar venta · ${money(tot)}</button>
+      <div class="vt-reg"><button class="btn primary pay" data-act="charge" ${S.cart.length?"":"disabled"}>Registrar venta · ${money(tot)}</button><label class="vt-disc" title="Descuento en porcentaje"><input id="vtD" inputmode="decimal" autocomplete="off" placeholder="0" value="${esc(vtDisc)}" aria-label="Descuento en porcentaje"><span>%</span></label></div>
       <div class="actions"><button class="btn sm ghost" data-act="clearCart" ${S.cart.length?"":"disabled"}>Vaciar</button><button class="btn sm" data-view="caja">Ver catálogo</button></div>
       <div style="margin-top:18px"><span class="label">Últimas ventas de hoy</span>
         <div class="list">${ts.map((t,i)=>`<div class="row small"><span class="muted num">${hm(t.t)}</span><span class="grow">${esc(t.items.map(x=>x.qty+"× "+lab(V(x.vid))).join(", "))}</span><b class="num">${money(t.total)}</b>${i===0?`<button class="btn sm ghost" data-act="undo">Anular</button>`:""}<button class="btn sm ghost" data-ticket="${t.id}">Ticket</button></div>`).join("")||`<p class="muted small">Aún no hay ventas hoy.</p>`}</div>
@@ -1644,7 +1647,7 @@ function openTicket(t){
   modal(`<div id="tk"><h4>${esc(B.name||"Puro Sabor Fit")}</h4>${B.nif?`<p>NIF ${esc(B.nif)}</p>`:""}${B.addr?`<p>${esc(B.addr)}</p>`:""}
   <p style="margin-top:6px">Factura simplificada <b>${t.inv}</b></p><p>${esc(shortDate(t.t))} ${hm(t.t)}</p>${t.cli?`<p>Cliente: ${esc(t.cli)}</p>`:""}
   <table>${t.items.map(i=>`<tr><td>${i.qty} × ${esc(lab(V(i.vid)))}</td><td class="r num">${money(i.qty*i.price)}</td></tr>`).join("")}
-  ${t.disc?`<tr><td>Subtotal</td><td class="r num">${money(t.total+t.disc)}</td></tr><tr><td>Competidor</td><td class="r num">−${money(t.disc)}</td></tr>`:""}<tr><td>Base imponible</td><td class="r num">${money(base)}</td></tr><tr><td>IVA ${iva} %</td><td class="r num">${money(round(t.total-base))}</td></tr>
+  ${t.disc?`<tr><td>Subtotal</td><td class="r num">${money(t.total+t.disc)}</td></tr><tr><td>Descuento</td><td class="r num">−${money(t.disc)}</td></tr>`:""}<tr><td>Base imponible</td><td class="r num">${money(base)}</td></tr><tr><td>IVA ${iva} %</td><td class="r num">${money(round(t.total-base))}</td></tr>
   <tr class="tot"><td>TOTAL</td><td class="r num">${money(t.total)}</td></tr></table><p>Gracias por su compra</p></div>
   <label class="field noprint"><span class="label">Cliente (nombre y NIF), solo si pide factura con sus datos</span><input id="tkCli" value="${esc(t.cli||"")}" placeholder="Opcional"></label>
   <div class="actions noprint"><button class="btn primary" data-act="print">Imprimir</button><button class="btn" data-act="closeModalBtn">Cerrar</button></div>
@@ -1894,10 +1897,11 @@ document.addEventListener("click",e=>{
   if(d.act==="cfBack"){openConfirm();return}
   if(d.dec){const i=S.cart.find(x=>x.vid===d.dec);if(i){i.qty--;if(!i.qty)S.cart=S.cart.filter(x=>x!==i)}render();return}
   if(d.pay){S.pay=d.pay;render();return}
-  if(d.act==="clearCart"){S.cart=[];render();return}
+  if(d.act==="clearCart"){S.cart=[];vtDisc="";render();return}
   if(d.act==="charge"){
     S.cart=S.cart.map(i=>({vid:i.vid,qty:Math.min(i.qty,avail(V(i.vid)))})).filter(i=>i.qty>0);
     if(!S.cart.length){render();toast("Esos productos se han agotado mientras tanto");return}
+    if(view==="venta"){const sub=cartSub(),dc=round(sub*vtPct()/100);const t=sell(S.cart,S.pay,null,dc);S.cart=[];vtDisc="";showVid=null;render();toast(`Venta registrada · ${money(t.total)}`);openTicket(t);return}
     discTxt="";compOpen=false;openConfirm();return}
   if(d.cfq){const[vid,n]=d.cfq.split("|");const i=S.cart.find(x=>x.vid===vid);if(i){i.qty=Math.max(0,Math.min(i.qty+ +n,avail(V(vid))));if(!i.qty)S.cart=S.cart.filter(x=>x!==i)}render();if(!S.cart.length){closeModal();return}openConfirm();return}
   if(d.act==="cfAdd"){closeModal();render();if(document.activeElement)document.activeElement.blur();toast("Añade productos y vuelve a pulsar «Registrar venta»");return}
@@ -1991,6 +1995,7 @@ document.addEventListener("input",e=>{
   if(t.id==="posQ"){posQ=t.value;render()}
   else if(t.id==="invQ"){invQ=t.value;render()}
   else if(t.id==="regQ"){regQ=t.value;render()}
+  else if(t.id==="vtD"){vtDisc=t.value.replace(/[^\d.,]/g,"").slice(0,5);render();const i=$("#vtD");if(i){i.focus();i.setSelectionRange(i.value.length,i.value.length)}}
   else if(t.id==="vtQ"){vtQ=t.value;render();const i=$("#vtQ");if(i){i.focus();i.setSelectionRange(i.value.length,i.value.length)}}
   else if(t.id==="repoQ"){repoQ=t.value;render()}
   else if(t.id==="ecQ"){ecQ=t.value;const r=$("#ecRes");if(r)r.innerHTML=ecDraw()}
@@ -2027,7 +2032,7 @@ if(!S.owner)S.owner={name:"Jose",phone:"",email:""};
 // Una sola vez: todos los productos pasan a IOGENIX MALAGA (proveedor A)
 if(S.biz&&S.biz.iva!==10){S.biz.iva=10;save(true)}
 // Al abrir el programa: nada a medias (carrito vacío, sin reposición empezada, en Caja)
-if(BETA){S.cart=[];S.repo=newRepo();S.mode="vender";showVid=null;save(true)}
+if(BETA){S.cart=[];S.repo=newRepo();S.mode="vender";showVid=null;vtDisc="";save(true)}
 if(!S.neutroFix){["v80","v182","v195"].forEach(id=>{const v=V(id);if(v&&v.flavor==="100 caps")v.flavor="Neutro"});S.neutroFix=1}
 if(!S.flapMig1){const p=PR("P1");if(p){p.name="Flapjack 120 g · barrita";p.vids.forEach(id=>{const v=V(id);if(!v)return;const old=v.price;v.name="Flapjack 120 g · barrita";v.price=2.5;if(old!==v.price)reg("stock",`Precio de ${lab(v)}: ${money(old)} (caja) → ${money(v.price)} (barrita suelta, precio de la web de GN)`)})}S.flapMig1=1;save(true)}
 if(!S.flapMig2){const p=PR("P1");if(p)p.vids.forEach(id=>{const v=V(id);if(v&&v.price!==2.5){reg("stock",`Precio de ${lab(v)}: ${money(v.price)} → 2,50 € (mismo precio para todas las barritas)`);v.price=2.5}});S.flapMig2=1;save(true)}
