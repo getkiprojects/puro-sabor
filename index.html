@@ -325,6 +325,13 @@ body:has(.tkback) header.top{z-index:16;position:relative}
 .webp{color:var(--muted);font-weight:600;font-size:.85em;margin-left:6px;text-decoration-thickness:2px}.webp.big{font-size:22px}
 .modal.wide{max-width:980px}.plp{-webkit-print-color-adjust:exact;print-color-adjust:exact;width:100%;border-collapse:collapse;font-size:13px}.plp th{text-align:left;background:#1D4E89;color:#fff;padding:6px}.plp td{padding:5px 6px;border-bottom:1px solid #ccc;vertical-align:middle}.plp img{width:52px;height:52px;object-fit:contain;display:block}.plp .wr{border:1px solid #999;min-width:140px;height:40px}.plp .wr.sm{min-width:26px}.plp tr{page-break-inside:avoid}
 .dsc{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:6px}.dsc button{padding:10px 4px;border:1px solid var(--line);border-radius:10px;background:var(--surface);font:inherit;font-weight:700;cursor:pointer}.dsc button[aria-pressed=true]{background:var(--brand);border-color:var(--brand);color:#fff}@media (max-width:520px){.dsc{grid-template-columns:repeat(3,1fr)}}
+.pos.cat{grid-template-columns:minmax(0,1.1fr) minmax(0,1fr)}.scase{min-height:420px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px;align-items:start;position:sticky;top:12px}.scase.empty{display:grid;place-items:center}
+.sc-img{background:#fff;border-radius:14px;padding:10px;display:grid;place-items:center;min-height:300px}.sc-img img{max-width:100%;max-height:440px;object-fit:contain}.sc-info h2{margin:0;font-size:26px}.sc-fl{margin:2px 0 0;font-size:19px}.sc-price{font-size:44px;font-weight:800;margin:8px 0 2px}
+.sc-empty{text-align:center;color:var(--muted);max-width:360px;margin:auto}.big-ico{font-size:54px;margin:0 0 6px}
+.pos.vt{grid-template-columns:minmax(0,1fr) 340px}.vt-head{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;padding-bottom:14px;border-bottom:2px solid var(--line);margin-bottom:6px}.vt-total{font-size:48px;font-weight:800;line-height:1}.vt-save{color:#1F8A4C;font-weight:700}
+.vt-row{display:grid;grid-template-columns:72px minmax(0,1fr) auto auto;gap:14px;align-items:center;padding:14px 0;border-bottom:1px solid var(--line)}.vt-img{width:72px;height:72px;object-fit:contain;border-radius:10px;background:#fff}.vt-txt b{font-size:17px}.vt-dto{color:#1F8A4C;font-size:13px;font-weight:600;margin-top:4px}
+.vt-qty{display:flex;align-items:center;gap:6px}.vt-qty button{width:40px;height:38px;font-size:20px;border:1px solid var(--line);border-radius:10px;background:var(--surface);cursor:pointer}.vt-qty b{min-width:28px;text-align:center;font-size:18px}.vt-price{text-align:right;min-width:96px}.vt-price b{font-size:19px;display:block}.vt-price .webp{margin:0;display:block}
+@media (max-width:900px){.pos.cat,.pos.vt{grid-template-columns:minmax(0,1fr)}.scase{position:static;grid-template-columns:1fr}.vt-row{grid-template-columns:56px minmax(0,1fr) auto}.vt-price{grid-column:2/-1;text-align:left}}
 .rgf{display:flex;flex-wrap:wrap;gap:6px}.rg-list{margin-top:8px}.rg-d{font-weight:600;margin:14px 0 4px;color:var(--muted)}.rg{display:grid;grid-template-columns:48px 110px 1fr;gap:10px;align-items:start;padding:7px 0;border-bottom:1px solid var(--line)}.rg .pill{justify-self:start}@media (max-width:600px){.rg{grid-template-columns:44px 1fr}.rg>span:last-child{grid-column:1/-1}}
 .ask3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:10px}.ask3 .btn{display:flex;flex-direction:column;gap:4px;padding:16px 10px;font-size:16px;height:auto}@media (max-width:600px){.ask3{grid-template-columns:1fr}}
 .zoom{background:#fff;border-radius:12px;border:1px solid var(--line);display:grid;place-items:center;min-height:200px}
@@ -356,7 +363,7 @@ body:has(.tkback) header.top{z-index:16;position:relative}
   <div class="wrap">
     <div class="bar">
       <div class="brand"><span class="logo" aria-hidden="true">PS</span><div><b>Puro Sabor Fit</b><small>Nutrición deportiva · Estepona</small></div></div>
-      <span class="demo">Beta 0.1</span>
+      <span class="demo">Versión 1.0</span>
       <span class="sp"></span>
       <span class="hclock num" id="hclock"></span>
       <span id="reset" hidden></span>
@@ -583,7 +590,7 @@ function basket(pick,R){
 
 let lastSave=0;
 function save(force){const n=performance.now();if(!force&&n-lastSave<1500)return;lastSave=n;try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
-const VIEWS=BETA?["caja","lector","inventario","pedidos","reposiciones","avisos","ajustes","resumen"]:["directo","resumen","caja","lector","inventario","pedidos","reposiciones","avisos"];
+const VIEWS=BETA?["caja","venta","lector","inventario","pedidos","reposiciones","avisos","ajustes","resumen"]:["directo","resumen","caja","lector","inventario","pedidos","reposiciones","avisos"];
 let view=BETA?"caja":"directo",invEdit=false,invPend={},selAlert=null,invFilter="todos",invCat="",invQ="",posQ="",confirmReset=false,linkQ="";
 const flash={};
 try{const h=location.hash.replace("#","");if(VIEWS.includes(h))view=h}catch(e){}
@@ -769,7 +776,8 @@ function handleScan(code){
   const v=byCode(code);
   if(!v){openLink(code);return}
   if(view==="reposiciones"&&S.repo.method==="lector"){repoAdd(v.id,1);S.lastScan={code,vid:v.id,t:Date.now(),mode:"repo",msg:""};toast(`+1 ${lab(v)} · llevas ${S.repo.lines.find(l=>l.vid===v.id).qty}`);render();return}
-  if(view==="caja"){openDetail(v);return}
+  if(view==="caja"&&BETA){showcase(v);return}
+  if(view==="venta"){if(addToCart(v,1)){render();toast(`Añadido a la venta: ${lab(v)} · ${money(v.price)}`)}else render();return}
   if(view!=="lector"){askScan(v,code);return}
   const mode=S.mode;let msg="";
   if(mode==="vender"){if(addToCart(v,1))msg=`Añadido al carrito: ${lab(v)} · ${money(v.price)}`}
@@ -780,7 +788,7 @@ function handleScan(code){
   render();
 }
 let scanAsk=null;
-function askScan(v,code){scanAsk=v.id;const def=view==="caja"?"venta":view==="reposiciones"?"repo":"muestra";
+function askScan(v,code){scanAsk=v.id;const def=view==="caja"||view==="venta"?"venta":view==="reposiciones"?"repo":"muestra";
   modal(`<div class="cell-p">${im(imgOf(v),"vimg")}<div><b>${esc(v.name)}</b>${v.flavor?` · ${esc(v.flavor)}`:""}<div class="sku num">${esc(code)} · stock ${v.stock} · ${money(v.price)}</div></div></div>
   <h2 style="margin-top:14px">¿Qué hago con este producto?</h2>
   <div class="ask3">${[["muestra","Muestra","Ver foto y precio"],["venta","Venta","Añadir a la caja"],["repo","Reposición","Entrada de mercancía"]].map(([k,t,s],i)=>`<button class="btn ${k===def?"primary":""}" data-sa="${k}" ${k===def?"data-def":""}><b>${i+1} · ${t}</b><span class="small">${s}</span></button>`).join("")}</div>
@@ -788,7 +796,7 @@ function askScan(v,code){scanAsk=v.id;const def=view==="caja"?"venta":view==="re
 function doAsk(k){const v=scanAsk&&V(scanAsk);scanAsk=null;closeModal();if(!v)return;
   if(view==="inventario"&&Object.keys(invPend).length)toast("Tienes cambios de stock sin guardar en Inventario");
   if(k==="muestra"){openZoom(v);return}
-  if(k==="venta"){view="caja";render();window.scrollTo(0,0);openDetail(v);return}
+  if(k==="venta"){addToCart(v,1);view="venta";render();window.scrollTo(0,0);toast(`Añadido a la venta: ${lab(v)}`);return}
   repoAdd(v.id,1);S.repo.method="lector";view="reposiciones";render();window.scrollTo(0,0);toast(`+1 ${lab(v)} en la reposición`)}
 document.addEventListener("keydown",e=>{if(!scanAsk||!document.querySelector(".ask3")||e.defaultPrevented)return;
   if(e.key==="Enter"){const b=document.querySelector(".ask3 [data-def]");if(b){e.preventDefault();doAsk(b.dataset.sa)}return}
@@ -900,7 +908,7 @@ function closeModal(){stopCamera();$("#layer").innerHTML=""}
 function renderTabs(){
   const drafts=S.orders.filter(o=>o.status==="borrador"&&o.lines.length).length;
   const unread=S.alerts.filter(a=>!a.read).length;
-  const T=[["directo","En directo",0],["resumen","Resumen",0],["caja","Caja",S.cart.reduce((a,i)=>a+i.qty,0)],["lector","Lector",0],["inventario","Inventario",0],["pedidos","Pedidos",drafts],["reposiciones","Reposiciones",S.orders.filter(o=>o.status==="enviado").length],["avisos",BETA?"Registro":"Avisos",BETA?0:unread],["ajustes","Ajustes",0]].filter(x=>VIEWS.includes(x[0])).sort((a,b)=>VIEWS.indexOf(a[0])-VIEWS.indexOf(b[0]));
+  const T=[["directo","En directo",0],["resumen","Resumen",0],["caja",BETA?"Catálogo":"Caja",BETA?0:S.cart.reduce((a,i)=>a+i.qty,0)],["venta","Venta",S.cart.reduce((a,i)=>a+i.qty,0)],["lector","Lector",0],["inventario","Inventario",0],["pedidos","Pedidos",drafts],["reposiciones","Reposiciones",S.orders.filter(o=>o.status==="enviado").length],["avisos",BETA?"Registro":"Avisos",BETA?0:unread],["ajustes","Ajustes",0]].filter(x=>VIEWS.includes(x[0])).sort((a,b)=>VIEWS.indexOf(a[0])-VIEWS.indexOf(b[0]));
   $("#tabs").innerHTML=T.map(([k,l,b])=>`<button data-view="${k}" ${view===k?'aria-current="page"':""}>${l}${b?`<span class="badge">${b>99?"99+":b}</span>`:""}</button>`).join("");
   if(BETA){const days=S.lastBackup?Math.floor((Date.now()-S.lastBackup)/DAY):null;$("#hclock").innerHTML=`<i class="run"></i>${esc(longDate(Date.now()))} · ${hm(Date.now())}${days==null?" · <b>sin copia de seguridad</b>":days>=7?` · <b>copia de hace ${days} días</b>`:""}`;return}
   $("#hclock").innerHTML=`<i class="${S.sim.running?"run":""}"></i>${S.sim.running?"Simulación en marcha":"Simulación en pausa"} · ${esc(shortDate(now()))} ${hm(now())}`;
@@ -1020,6 +1028,55 @@ function webNote(v){if(!v)return"";const w=WEBO[v.pid];if(!w||w>=v.price)return"
 const webTag=w=>w?` <s class="webp num" title="Precio en la web de la marca (sin descuentos)">${money(w)}</s>`:"";
 function priceTag(p){const vs=p.vids.map(V);const ps=vs.map(v=>v.price);const mn=Math.min(...ps),mx=Math.max(...ps);const vmin=vs.find(v=>v.price===mn);return`<span class="tag num">${mn!==mx?"<small>desde</small>":""}${money(mn)}</span>${webPrice(vmin)?`<span class="wpbox"><b class="dto">−${pctOff(vmin,webPrice(vmin))} %</b>${webTag(webPrice(vmin))}</span>`:""}${webNote(vmin)}`}
 let ticketBig=false;
+let showVid=null,scTab=null,vtQ="";
+function showcase(v){if(!v)return;showVid=v.id;scTab=null;view="caja";render();const el=$("#scase");if(el&&innerWidth<900)el.scrollIntoView({block:"start"})}
+function vCatalogo(){
+  const cats=["Todos",...CATS];const q=posQ.trim().toLowerCase();
+  const list=S.prods.filter(p=>(S.cat==="Todos"||CATS[p.cat]===S.cat)&&(!q||p.name.toLowerCase().includes(q)||p.vids.some(id=>{const v=V(id);return v.flavor.toLowerCase().includes(q)||v.codes.some(c=>c.includes(q))})));
+  const v=showVid&&V(showVid);const n=S.cart.reduce((a,i)=>a+i.qty,0);
+  let sc=`<div class="sc-empty"><p class="big-ico" aria-hidden="true">📦</p><p><b>Pasa un producto por el lector</b> o tócalo en la lista y se mostrará aquí en grande para enseñárselo al cliente.</p></div>`;
+  if(v){const w=webPrice(v),D=pdesc(v),txt=scTab==="d"?D.d:scTab==="m"?D.m:"";const src=bigImg(v);
+    sc=`<div class="sc-img">${src?`<img src="${src}" alt="${esc(lab(v))}" onerror="this.style.display='none'">`:`<p class="empty">Sin foto</p>`}</div>
+    <div class="sc-info"><h2>${esc(v.name)}</h2>${v.flavor?`<p class="sc-fl">${esc(v.flavor)}</p>`:""}
+    <div class="sc-price num">${money(v.price)}</div>
+    ${w?`<div class="wpbox big"><b class="dto">Este producto tiene un ${pctOff(v,w)} % de descuento</b><s class="webp big">${money(w)}</s></div><p class="muted small" style="margin:2px 0 0">Precio en la web de ${webSrc(v.pid)}</p>`:""}
+    <p class="muted small" style="margin:8px 0 0">${esc(brandOf(v))} · ${esc(CATS[v.cat])}${v.codes.length?` · <span class="num">${esc(v.codes[0])}</span>`:""}</p>
+    <div class="dtabs" role="tablist"><button role="tab" data-sctab="d" aria-selected="${scTab==="d"}">Descripción del producto</button><button role="tab" data-sctab="m" aria-selected="${scTab==="m"}">Modo de empleo</button></div>
+    ${scTab?`<div class="dpanel">${txt?`<div class="dtext">${esc(txt)}</div>`:`<p class="muted small" style="margin:0">Sin texto todavía. Se escribe desde la ficha del producto (pestaña Venta o Inventario).</p>`}</div>`:""}
+    <div class="actions" style="margin-top:14px"><button class="btn primary" data-scadd="${v.id}" ${avail(v)<=0?"disabled":""}>${avail(v)<=0?"Agotado":"Añadir a la venta"}</button><button class="btn" data-act="scClear">Quitar de pantalla</button></div></div>`}
+  return `<div class="view-head"><div><h2>Catálogo</h2><p>Pasa un producto por el lector o tócalo: se muestra en grande para el cliente. El siguiente sustituye al anterior.</p></div><span class="sp"></span>${n?`<button class="btn primary" data-view="venta">Ir a la venta · ${n} producto${n>1?"s":""} · ${money(S.cart.reduce((a,i)=>a+i.qty*V(i.vid).price,0))}</button>`:""}<button class="btn" data-act="cam">Escanear con la cámara</button></div>
+  <div class="pos cat">
+    <section id="scase" class="panel scase${v?"":" empty"}">${sc}</section>
+    <section style="min-width:0">
+      <input class="search" id="posQ" type="search" placeholder="Buscar producto, sabor o código" value="${esc(posQ)}" aria-label="Buscar producto">
+      <div class="chips">${cats.map((c,i)=>`<button class="chip" data-cat="${esc(c)}" aria-pressed="${S.cat===c}">${i?`<span class="dotc" style="background:${ccol(i-1)}"></span>`:""}${esc(c)}</button>`).join("")}</div>
+      <div class="tiles">${list.map(p=>{const vs=p.vids.map(V);return`<button class="tile" style="--cc:${ccol(p.cat)}" data-prod="${p.id}">${im(pimgOf(p),"pimg")}<span class="nm">${esc(p.name)}</span><span class="muted small">${vs.length>1?vs.length+" sabores o formatos":esc(vs[0].flavor||CATS[p.cat])}</span><span class="ft">${priceTag(p)}</span></button>`}).join("")||`<div class="empty">Nada con ese nombre.</div>`}</div>
+    </section>
+  </div>`}
+function vVenta(){
+  const n=S.cart.reduce((a,i)=>a+i.qty,0),tot=S.cart.reduce((a,i)=>a+i.qty*V(i.vid).price,0),pvp=S.cart.reduce((a,i)=>{const v=V(i.vid);return a+i.qty*(webPrice(v)||v.price)},0);
+  const q=vtQ.trim().toLowerCase();const ws=q.split(/\s+/).filter(Boolean);const res=q.length<2?[]:S.items.filter(v=>{const L=lab(v).toLowerCase();return ws.every(w=>L.includes(w))||v.codes.some(c=>c.includes(q))}).slice(0,12);
+  const ts=todays().slice(-5).reverse();
+  return `<div class="view-head"><div><h2>Venta</h2><p>Pasa los productos por el lector y se van sumando. Esta pantalla está pensada para que la vea el cliente.</p></div><span class="sp"></span><button class="btn" data-act="editCaja">Editar caja</button></div>
+  <div class="pos vt">
+    <section class="panel vt-main">
+      <div class="vt-head"><div><span class="label">Total estimado</span><div class="muted">${n} producto${n!==1?"s":""}${pvp>tot+0.005?` · <span class="vt-save">ahorro ${money(pvp-tot)}</span>`:""}</div></div><div class="vt-total num">${money(tot)}</div></div>
+      <div class="vt-list">${S.cart.length?S.cart.map(i=>{const v=V(i.vid),w=webPrice(v);return`<div class="vt-row">${im(imgOf(v),"vt-img")}<div class="vt-txt"><b>${esc(v.name)}</b>${v.flavor?`<div class="muted">${esc(v.flavor)}</div>`:""}${v.codes.length?`<div class="muted small num">Código: ${esc(v.codes[0])}</div>`:""}${w?`<div class="vt-dto">🏷 ${pctOff(v,w)} % de descuento aplicado</div>`:""}</div>
+        <div class="vt-qty"><button data-dec="${v.id}" aria-label="Una menos">−</button><b class="num">${i.qty}</b><button data-inc="${v.id}" aria-label="Una más" ${i.qty>=avail(v)?"disabled":""}>+</button></div>
+        <div class="vt-price num"><b>${money(v.price*i.qty)}</b>${w?`<s class="webp">${money(w*i.qty)}</s>`:""}${i.qty>1?`<div class="muted small">${money(v.price)} / ud</div>`:""}</div></div>`}).join(""):`<div class="sc-empty"><p class="big-ico" aria-hidden="true">🛒</p><p><b>Todavía no hay productos.</b><br>Pasa uno por el lector o búscalo a la derecha.</p></div>`}</div>
+    </section>
+    <aside class="panel vt-side">
+      <span class="label">Añadir sin lector</span>
+      <input class="search" id="vtQ" type="search" placeholder="Buscar producto, sabor o código" value="${esc(vtQ)}" aria-label="Buscar producto para añadir" autocomplete="off">
+      ${res.length?`<div class="plist">${res.map(v=>`<button class="fl" data-vtadd="${v.id}" ${avail(v)<=0?"disabled":""}><span class="cell-p">${im(imgOf(v),"vimg")}<span>${esc(v.name)}<div class="sku">${esc(v.flavor)||CATS[v.cat]} · ${money(v.price)}</div></span></span></button>`).join("")}</div>`:q.length>=2?`<p class="muted small">Nada con ese nombre.</p>`:""}
+      <div class="seg full" role="group" aria-label="Forma de pago" style="margin-top:14px">${["Efectivo","Tarjeta","Bizum"].map(m=>`<button data-pay="${m}" aria-pressed="${S.pay===m}">${m}</button>`).join("")}</div>
+      <button class="btn primary pay" data-act="charge" ${S.cart.length?"":"disabled"}>Registrar venta · ${money(tot)}</button>
+      <div class="actions"><button class="btn sm ghost" data-act="clearCart" ${S.cart.length?"":"disabled"}>Vaciar</button><button class="btn sm" data-view="caja">Ver catálogo</button></div>
+      <div style="margin-top:18px"><span class="label">Últimas ventas de hoy</span>
+        <div class="list">${ts.map((t,i)=>`<div class="row small"><span class="muted num">${hm(t.t)}</span><span class="grow">${esc(t.items.map(x=>x.qty+"× "+lab(V(x.vid))).join(", "))}</span><b class="num">${money(t.total)}</b>${i===0?`<button class="btn sm ghost" data-act="undo">Anular</button>`:""}<button class="btn sm ghost" data-ticket="${t.id}">Ticket</button></div>`).join("")||`<p class="muted small">Aún no hay ventas hoy.</p>`}</div>
+      </div>
+    </aside>
+  </div>`}
 function vCaja(){
   const cats=["Todos",...CATS];
   const q=posQ.trim().toLowerCase();
@@ -1095,7 +1152,7 @@ function setCode(vid,code){const v=V(vid);codeCapture=null;code=String(code||"")
   if(!v.codes.includes(code))v.codes.unshift(code);reg("codigo",`Código ${code} añadido a ${lab(v)} desde Caja`);save(true);toast(`Código guardado: ${code}`);openDetail(v,lastDet&&lastDet.v===v?lastDet.fromList:null)}
 function openProduct(p){
   const vs=p.vids.map(V);
-  if(vs.length===1){openDetail(vs[0]);return}
+  if(vs.length===1){if(view==="caja"&&BETA){showcase(vs[0]);return}openDetail(vs[0]);return}
   const mixed=vs.some(x=>x.price!==vs[0].price);
   modal(`<h2>${esc(p.name)}</h2><p class="muted" style="margin:0">Elige el sabor o formato. ${priceTag(p)}</p>
   <div class="flavors">${vs.map(v=>{const inC=(S.cart.find(i=>i.vid===v.id)||{qty:0}).qty;const left=avail(v)-inC;return`<button class="fl" data-addv="${v.id}" ${left<=0?"disabled":""}>${im(imgOf(v),"flimg")}<b>${esc(v.flavor)}</b><span class="small muted num">${left<=0?"Agotado":BETA&&!v.inited?"sin contar":left+" uds"}${mixed?" · "+money(v.price):""}</span>${isFew(v)&&left>0?`<span class="pill warn" style="justify-self:start">Queda poco</span>`:""}</button>`}).join("")}</div>
@@ -1750,7 +1807,7 @@ function render(fromTick){
     if(view==="avisos"||view==="reposiciones")return;
   }
   if(!S.repo)S.repo=newRepo();if(!S.repos)S.repos=[];
-  const VW={directo:vDirecto,resumen:BETA?vResumenB:vResumen,caja:vCaja,lector:vLector,inventario:vInventario,pedidos:vPedidos,reposiciones:vReposiciones,avisos:BETA?vRegistro:vAvisos,ajustes:vAjustes};
+  const VW={directo:vDirecto,resumen:BETA?vResumenB:vResumen,caja:BETA?vCatalogo:vCaja,venta:vVenta,lector:vLector,inventario:vInventario,pedidos:vPedidos,reposiciones:vReposiciones,avisos:BETA?vRegistro:vAvisos,ajustes:vAjustes};
   const focusId=ae&&ae.id&&ae.tagName==="INPUT"&&ae.closest&&ae.closest("#main")?ae.id:null;let pos=null,val=null;try{pos=ae.selectionStart;val=ae.value}catch(e){}
   const feedEl=$(".feed");const feedTop=feedEl?feedEl.scrollTop:0;
   $("#main").innerHTML=VW[view]();
@@ -1811,9 +1868,13 @@ document.addEventListener("click",e=>{
   if(d.act==="clearCount"){S.count={};render();return}
   if(d.cat){S.cat=d.cat;render();return}
   if(d.prod){openProduct(PR(d.prod));return}
-  if(d.addv){openDetail(V(d.addv),true);return}
+  if(d.addv){if(view==="caja"&&BETA){closeModal();showcase(V(d.addv));return}openDetail(V(d.addv),true);return}
   if(d.act==="cfComp"){compOpen=!compOpen;openConfirm();return}
   if(d.disc!==undefined&&$("#layer .dsc")){discTxt=d.disc?d.disc+"%":"";compOpen=false;openConfirm();return}
+  if(d.sctab){scTab=scTab===d.sctab?null:d.sctab;render();return}
+  if(d.act==="scClear"){showVid=null;render();return}
+  if(d.scadd){const v=V(d.scadd);if(addToCart(v,1)){render();toast(`Añadido a la venta: ${lab(v)} · ${money(v.price)}`)}return}
+  if(d.vtadd){const v=V(d.vtadd);if(addToCart(v,1)){vtQ="";render();toast(`Añadido: ${lab(v)}`)}return}
   if(d.dtab){detTab=detTab===d.dtab?null:d.dtab;detEdit=false;if(lastDet)openDetail(lastDet.v,lastDet.fromList);return}
   if(d.act==="dEdit"){detEdit=true;if(lastDet)openDetail(lastDet.v,lastDet.fromList);const t=$("#dTxt");if(t)t.focus();return}
   if(d.act==="dCancel"){detEdit=false;if(lastDet)openDetail(lastDet.v,lastDet.fromList);return}
@@ -1842,7 +1903,7 @@ document.addEventListener("click",e=>{
   if(d.act==="cfAdd"){closeModal();render();if(document.activeElement)document.activeElement.blur();toast("Añade productos y vuelve a pulsar «Registrar venta»");return}
   if(d.act==="cfCancel"){closeModal();render();toast("Venta cancelada · los productos siguen en el carrito");return}
   if(d.act==="cfOk"){const sub=cartSub(),dc=discOf(sub);if(dc<0){toast("Descuento no válido");return}
-    const t=sell(S.cart,S.pay,null,dc);S.cart=[];render();toast(`Venta registrada · ${money(t.total)}`);openTicket(t);return}
+    const t=sell(S.cart,S.pay,null,dc);S.cart=[];showVid=null;render();toast(`Venta registrada · ${money(t.total)}`);openTicket(t);return}
   if(d.ticket){const t=S.tickets.find(x=>x.id===d.ticket);if(t)openTicket(t);return}
   if(d.act==="print"){const c=$("#tkCli");if(c&&printT){printT.cli=c.value.trim();save(true)}try{window.print()}catch(e){toast("No se ha podido abrir la impresión")}return}
   if(d.act==="undo"){undoLast();render();return}
@@ -1930,6 +1991,7 @@ document.addEventListener("input",e=>{
   if(t.id==="posQ"){posQ=t.value;render()}
   else if(t.id==="invQ"){invQ=t.value;render()}
   else if(t.id==="regQ"){regQ=t.value;render()}
+  else if(t.id==="vtQ"){vtQ=t.value;render();const i=$("#vtQ");if(i){i.focus();i.setSelectionRange(i.value.length,i.value.length)}}
   else if(t.id==="repoQ"){repoQ=t.value;render()}
   else if(t.id==="ecQ"){ecQ=t.value;const r=$("#ecRes");if(r)r.innerHTML=ecDraw()}
   else if(t.id==="linkQ"){linkQ=t.value;const r=$("#linkRes");if(r&&openLink.draw)r.innerHTML=openLink.draw()}
@@ -1965,7 +2027,7 @@ if(!S.owner)S.owner={name:"Jose",phone:"",email:""};
 // Una sola vez: todos los productos pasan a IOGENIX MALAGA (proveedor A)
 if(S.biz&&S.biz.iva!==10){S.biz.iva=10;save(true)}
 // Al abrir el programa: nada a medias (carrito vacío, sin reposición empezada, en Caja)
-if(BETA){S.cart=[];S.repo=newRepo();S.mode="vender";save(true)}
+if(BETA){S.cart=[];S.repo=newRepo();S.mode="vender";showVid=null;save(true)}
 if(!S.neutroFix){["v80","v182","v195"].forEach(id=>{const v=V(id);if(v&&v.flavor==="100 caps")v.flavor="Neutro"});S.neutroFix=1}
 if(!S.flapMig1){const p=PR("P1");if(p){p.name="Flapjack 120 g · barrita";p.vids.forEach(id=>{const v=V(id);if(!v)return;const old=v.price;v.name="Flapjack 120 g · barrita";v.price=2.5;if(old!==v.price)reg("stock",`Precio de ${lab(v)}: ${money(old)} (caja) → ${money(v.price)} (barrita suelta, precio de la web de GN)`)})}S.flapMig1=1;save(true)}
 if(!S.flapMig2){const p=PR("P1");if(p)p.vids.forEach(id=>{const v=V(id);if(v&&v.price!==2.5){reg("stock",`Precio de ${lab(v)}: ${money(v.price)} → 2,50 € (mismo precio para todas las barritas)`);v.price=2.5}});S.flapMig2=1;save(true)}
