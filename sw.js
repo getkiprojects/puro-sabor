@@ -1,6 +1,6 @@
 // Puro Sabor Fit: guarda el programa para usarlo sin internet.
 // index.html: primero la red (para recibir actualizaciones) y, sin conexión, la copia guardada.
-const C="psf-app-v4";
+const C="psf-app-v7";
 const FILES=["./","./index.html","./manifest.webmanifest","./icon-192.png","./icon-512.png","./apple-touch-icon.png",
   "./ocr/tesseract.min.js","./ocr/worker.min.js","./ocr/core/tesseract-core-lstm.wasm.js","./ocr/core/tesseract-core-simd-lstm.wasm.js","./ocr/lang/spa.traineddata.gz","./ocr/pdf.min.js","./ocr/pdf.worker.min.js"];
 self.addEventListener("install",e=>{e.waitUntil(caches.open(C).then(c=>c.addAll(FILES)).then(()=>self.skipWaiting()))});

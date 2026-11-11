@@ -364,7 +364,7 @@ body:has(.tkback) header.top{z-index:16;position:relative}
   <div class="wrap">
     <div class="bar">
       <div class="brand"><span class="logo" aria-hidden="true">PS</span><div><b>Puro Sabor Fit</b><small>Nutrición deportiva · Estepona</small></div></div>
-      <span class="demo">Versión 1.0</span>
+      <span class="demo">Versión 1.0.2</span>
       <span class="sp"></span>
       <span class="hclock num" id="hclock"></span>
       <span id="reset" hidden></span>
@@ -894,7 +894,7 @@ function advance(ms){while(ms>0){const s=Math.min(ms,5*60e3);stepSim(s);ms-=s}}
 let lastReal=0,lastFull=0;
 function tick(){
   const r=performance.now();const dt=Math.min((r-lastReal)/1000,2);lastReal=r;
-  if(BETA){if(r-lastFull>30000){lastFull=r;autoClose();renderTabs()}return}
+  if(BETA){if(r-lastFull>30000){lastFull=r;autoClose();renderTabs();ghAuto()}return}
   if(!S.sim.running)return;
   advance(dt*S.sim.speed*60e3);
   if(view==="directo"||view==="resumen"||r-lastFull>3000){lastFull=r;render(true)}else renderTabs();
@@ -1745,6 +1745,14 @@ function vAjustes(){
         <p style="margin:10px 0 0;font-weight:700" id="imgStatus">${imgStatusText()}</p>
         <div class="actions"><button class="btn" data-act="dlImgs">Descargar las fotos que faltan</button></div>
       </section>
+      <section class="panel"><h3>Copia de códigos de barras en GitHub</h3>
+        <p class="muted small" style="margin:4px 0 0">Cada código que vincules se sube solo al repositorio, a la carpeta <b>datos</b>: <b>codigos.csv</b> (se abre con Excel) y codigos.json. El portátil y el iPad recogen de ahí los códigos del otro. La clave se guarda solo en este equipo; no va en las copias ni en la web.</p>
+        <label class="field"><span class="label">Usuario de GitHub</span><input id="ghO" value="${esc(GH.o||"")}" autocomplete="off"></label>
+        <label class="field"><span class="label">Repositorio</span><input id="ghR" value="${esc(GH.r||"")}" autocomplete="off"></label>
+        <label class="field"><span class="label">Clave (token)</span><input id="ghT" type="password" placeholder="${GH.t?"Guardada · escribe otra para cambiarla":"github_pat_…"}" autocomplete="off"></label>
+        <p style="margin:10px 0 0;font-weight:700" id="ghStatus">${esc(ghStatusText())}</p>
+        <div class="actions"><button class="btn primary" data-act="ghSave">Guardar y subir</button><button class="btn" data-act="ghSync">Subir ahora</button><button class="btn" data-act="ghCsv">Descargar copia aquí (Excel)</button>${GH.t?'<button class="btn" data-act="ghForget">Borrar la clave de este equipo</button>':""}</div>
+      </section>
       <section class="panel"><h3>Descripciones y modo de empleo</h3>
         <p class="muted small" style="margin:4px 0 0">Se copian de purosaborfit.com a la ficha de cada producto. Hace falta internet solo al importarlas; después se ven sin conexión. Los textos que hayas escrito o editado a mano no se tocan.</p>
         <p style="margin:10px 0 0;font-weight:700" id="descStatus">${descStatusText()}</p>
@@ -1942,6 +1950,10 @@ document.addEventListener("click",e=>{
   if(d.act==="doCerrarDia"){const k=dayKey(now());let c=closeRec(k);if(!c||c.auto||c.dirty){c=makeClose(k,now(),false);closeDay(true)}c.dayClosed=Date.now();log("info","Día cerrado");closeModal();save(true);render();toast("Día cerrado");return}
   if(d.act==="dlImgs"){downloadImgs(true);return}
   if(d.act==="impDesc"){importDesc();return}
+  if(d.act==="ghSave"){ghSaveForm();return}
+  if(d.act==="ghSync"){ghSync(true);return}
+  if(d.act==="ghCsv"){saveFile(new Blob([codesCsv()],{type:"text/csv"}),"codigos-barras-"+new Date().toISOString().slice(0,10)+".csv");return}
+  if(d.act==="ghForget"){delete GH.t;GH.sig="";ghMsg="";ghStore();reg("ajustes","Clave de GitHub borrada de este equipo");render();toast("Clave borrada");return}
   if(d.act==="prSinCod"){const L=S.items.filter(v=>!v.codes.length).sort((a,b)=>a.cat-b.cat||a.name.localeCompare(b.name)||a.flavor.localeCompare(b.flavor));const d0=new Date();
     modal(`<div id="plp"><h2 style="margin:0">Productos sin código de barras</h2><p class="muted" style="margin:2px 0 10px">Puro Sabor Fit · ${d0.toLocaleDateString("es-ES")} · ${L.length} productos. Apunta el código y vincúlalo en Caja (ficha › Añadir código de barras).</p>
     <table class="plp"><thead><tr><th>Nº</th><th>Foto</th><th>Marca</th><th>Producto</th><th>Sabor / formato</th><th>Precio</th><th>Código de barras</th><th>✓</th></tr></thead><tbody>
@@ -2043,12 +2055,50 @@ if(!S.supMig1){S.items.forEach(v=>v.sup="A");SUP.A.name="IOGENIX MALAGA";S.sup=S
 S.orders.filter(o=>o.sentAt&&!o.num).sort((a,b)=>a.sentAt-b.sentAt).forEach(o=>{S.pedNum=(S.pedNum||0)+1;o.num="#"+String(S.pedNum).padStart(4,"0")});
 if(BETA&&!S.reg){S.alerts=[];S.feed=S.feed.filter(f=>f.k!=="aviso");reg("sistema","Registro iniciado · avisos anteriores borrados");save(true)}
 (function(){let n=0;Object.entries(EANS).forEach(([id,c])=>{const v=V(id);if(v&&!v.codes.includes(c)&&!S.items.some(x=>x.codes.includes(c))){v.codes.unshift(c);n++}});if(n){log("info",`${n} códigos de barras cargados del catálogo del proveedor`);save(true)}})();
+const GHK="psf-gh";let GH=(()=>{try{return JSON.parse(localStorage.getItem(GHK))||{}}catch(e){return{}}})(),ghBusy=false,ghMsg="";
+(function(){const h=location.hostname;if(!GH.o&&/\.github\.io$/i.test(h)){GH.o=h.split(".")[0];GH.r=location.pathname.split("/").filter(Boolean)[0]||h}})();
+const ghStore=()=>{try{localStorage.setItem(GHK,JSON.stringify(GH))}catch(e){}};
+const ghSig=()=>{const s=S.items.map(v=>v.id+":"+v.codes.join(",")).join("|")+JSON.stringify(S.alb||{});let h=0;for(let i=0;i<s.length;i++)h=(h*31+s.charCodeAt(i))|0;return String(h)};
+const b64e=t=>{const b=new TextEncoder().encode(t);let s="";for(let i=0;i<b.length;i+=8192)s+=String.fromCharCode.apply(null,b.subarray(i,i+8192));return btoa(s)};
+const b64d=t=>new TextDecoder().decode(Uint8Array.from(atob(String(t).replace(/\s/g,"")),c=>c.charCodeAt(0)));
+function ghData(){const items={};S.items.forEach(v=>{if(v.codes.length)items[v.id]={n:lab(v),c:v.codes.slice()}});return{v:1,at:new Date().toISOString(),items,alb:S.alb||{}}}
+function codesCsv(){const q=x=>'"'+String(x==null?"":x).replace(/"/g,'""')+'"',t=c=>c?'="'+c+'"':"";
+  const rows=[["Marca","Categoría","Producto","Sabor","Código de barras","Otros códigos","Precio","Stock"].join(";")];
+  S.items.slice().sort((a,b)=>brandOf(a).localeCompare(brandOf(b))||lab(a).localeCompare(lab(b))).forEach(v=>rows.push([q(brandOf(v)),q(CATS[v.cat]),q(v.name),q(v.flavor||""),t(v.codes[0]),q(v.codes.slice(1).join(" ")),String(v.price).replace(".",","),v.stock==null?"":v.stock].join(";")));
+  return"﻿"+rows.join("\r\n")}
+function ghMerge(R){let n=0;if(!R||!R.items)return 0;
+  Object.entries(R.items).forEach(([id,x])=>{const v=V(id);if(!v||lab(v)!==x.n)return;(x.c||[]).forEach(c=>{if(!v.codes.includes(c)&&!S.items.some(o=>o.codes.includes(c))){v.codes.push(c);n++}})});
+  S.alb=S.alb||{};Object.entries(R.alb||{}).forEach(([k,id])=>{if(!(k in S.alb)&&V(id))S.alb[k]=id});
+  if(n){reg("codigo",`${n} código${n>1?"s":""} recibido${n>1?"s":""} de la copia de GitHub`);save(true)}return n}
+async function ghApi(path,opt){const r=await fetch(`https://api.github.com/repos/${encodeURIComponent(GH.o)}/${encodeURIComponent(GH.r)}/contents/${path}`,Object.assign({cache:"no-store"},opt,{headers:{Authorization:"Bearer "+GH.t,Accept:"application/vnd.github+json"}}));return r}
+async function ghGet(path){const r=await ghApi(path);if(r.status===404)return{};if(!r.ok)throw r.status;const j=await r.json();return{sha:j.sha,text:j.content?b64d(j.content):""}}
+async function ghPut(path,text,sha,msg){const r=await ghApi(path,{method:"PUT",body:JSON.stringify(Object.assign({message:msg,content:b64e(text)},sha?{sha}:{}))});if(!r.ok)throw r.status}
+function ghErr(e){return e===401?"La clave no es válida o ha caducado":e===403?"La clave no tiene permiso de escritura en el repositorio":e===404?"No encuentro el repositorio (revisa usuario y nombre)":e===409||e===422?"El archivo cambió mientras se subía; se reintentará":"Sin conexión con GitHub"}
+async function ghSync(manual){if(ghBusy)return;if(!GH.o||!GH.r||!GH.t){if(manual)toast("Falta rellenar usuario, repositorio y clave");return}
+  if(!navigator.onLine){ghMsg="Sin internet: se subirá al volver la conexión";if(manual)toast(ghMsg);ghPaint();return}
+  ghBusy=true;ghMsg="Subiendo…";ghPaint();
+  try{for(let k=0;k<2;k++){try{const J=await ghGet("datos/codigos.json");let R=null;try{R=J.text?JSON.parse(J.text):null}catch(e){}
+      const got=ghMerge(R);const D=ghData(),body=JSON.stringify(D,null,1);
+      const same=R&&JSON.stringify(R.items)===JSON.stringify(D.items)&&JSON.stringify(R.alb||{})===JSON.stringify(D.alb);
+      const nc=Object.keys(D.items).length;
+      if(!same){const st=new Date().toLocaleString("es-ES");await ghPut("datos/codigos.json",body,J.sha,"Códigos de barras "+st);const C2=await ghGet("datos/codigos.csv");await ghPut("datos/codigos.csv",codesCsv(),C2.sha,"Códigos de barras (Excel) "+st);reg("codigo",`Copia de códigos subida a GitHub · ${nc} productos con código`)}
+      GH.sig=ghSig();GH.at=Date.now();ghStore();ghMsg=`Al día · ${nc} productos con código${got?` · ${got} recibidos`:""}`;if(manual)toast("Copia de códigos al día en GitHub");if(got)render();break}
+    catch(e){if((e===409||e===422)&&k===0)continue;throw e}}}
+  catch(e){ghMsg=ghErr(e);if(manual)toast(ghMsg)}
+  ghBusy=false;ghPaint()}
+async function ghPull(){if(GH.t)return ghSync(false);if(location.protocol!=="https:"||!navigator.onLine)return;
+  try{const r=await fetch("datos/codigos.json?t="+Date.now(),{cache:"no-store"});if(r.ok&&ghMerge(await r.json()))render()}catch(e){}}
+function ghAuto(){if(GH.t&&!ghBusy&&navigator.onLine&&GH.sig!==ghSig())ghSync(false)}
+function ghPaint(){const el=document.getElementById("ghStatus");if(el)el.textContent=ghStatusText()}
+function ghStatusText(){if(ghMsg)return ghMsg;if(!GH.t)return"Sin configurar en este equipo";return GH.at?"Última copia: "+new Date(GH.at).toLocaleString("es-ES"):"Configurado; pendiente de la primera copia"}
+function ghSaveForm(){const g=id=>(document.getElementById(id)||{}).value||"";GH.o=g("ghO").trim();GH.r=g("ghR").trim();const t=g("ghT").trim();if(t)GH.t=t;GH.sig="";ghStore();reg("ajustes","Copia de códigos en GitHub configurada");toast("Guardado");ghSync(true)}
 autoClose();
 if(location.protocol==="https:"&&"serviceWorker" in navigator)navigator.serviceWorker.register("sw.js").catch(()=>{});
 try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist()}catch(e){}
 lastReal=performance.now();
 setInterval(tick,400);
 render();
+setTimeout(ghPull,1500);
 loadImgs().then(()=>{render();if(allImgFiles().some(f=>!IMGDATA["L:"+f]))downloadImgs(false)});
 })();
 </script>
