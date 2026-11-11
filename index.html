@@ -364,7 +364,7 @@ body:has(.tkback) header.top{z-index:16;position:relative}
   <div class="wrap">
     <div class="bar">
       <div class="brand"><span class="logo" aria-hidden="true">PS</span><div><b>Puro Sabor Fit</b><small>Nutrición deportiva · Estepona</small></div></div>
-      <span class="demo">Versión 1.0.2</span>
+      <span class="demo">Versión 1.0.3</span>
       <span class="sp"></span>
       <span class="hclock num" id="hclock"></span>
       <span id="reset" hidden></span>
@@ -769,7 +769,7 @@ let linkSkip=0;
 const unlinked=()=>S.items.filter(v=>!v.codes.length);
 function curLink(){const u=unlinked();if(!u.length)return null;return u[linkSkip%u.length]}
 function linkNext(code){const cur=curLink();if(!cur){toast("Todos los productos tienen ya código");return}const ex=byCode(code);if(ex){toast(`Ese código ya es de ${lab(ex)}`);return}cur.codes.push(code);log("info",`Código ${code} vinculado a ${lab(cur)}`);S.lastScan={code,vid:cur.id,t:Date.now(),mode:"vincular",msg:"Vinculado"};toast(`Vinculado: ${lab(cur)}`);render()}
-function handleScan(code){
+function handleScan(code){if(accLocked())return;
   code=String(code).trim().replace(/\s+/g,"");
   if(!code)return;
   if(codeCapture){setCode(codeCapture,code);return}
@@ -1750,6 +1750,7 @@ function vAjustes(){
         <label class="field"><span class="label">Usuario de GitHub</span><input id="ghO" value="${esc(GH.o||"")}" autocomplete="off"></label>
         <label class="field"><span class="label">Repositorio</span><input id="ghR" value="${esc(GH.r||"")}" autocomplete="off"></label>
         <label class="field"><span class="label">Clave (token)</span><input id="ghT" type="password" placeholder="${GH.t?"Guardada · escribe otra para cambiarla":"github_pat_…"}" autocomplete="off"></label>
+        <p class="muted small" style="margin:8px 0 0">Interruptor de acceso: <b>${ACC.st==="bloqueado"?"bloqueado":"abierto"}</b>${ACC.at?" · comprobado "+new Date(ACC.at).toLocaleString("es-ES"):" · aún sin comprobar"} (se comprueba una vez al día con internet)</p>
         <p style="margin:10px 0 0;font-weight:700" id="ghStatus">${esc(ghStatusText())}</p>
         <div class="actions"><button class="btn primary" data-act="ghSave">Guardar y subir</button><button class="btn" data-act="ghSync">Subir ahora</button><button class="btn" data-act="ghCsv">Descargar copia aquí (Excel)</button>${GH.t?'<button class="btn" data-act="ghForget">Borrar la clave de este equipo</button>':""}</div>
       </section>
@@ -2055,6 +2056,23 @@ if(!S.supMig1){S.items.forEach(v=>v.sup="A");SUP.A.name="IOGENIX MALAGA";S.sup=S
 S.orders.filter(o=>o.sentAt&&!o.num).sort((a,b)=>a.sentAt-b.sentAt).forEach(o=>{S.pedNum=(S.pedNum||0)+1;o.num="#"+String(S.pedNum).padStart(4,"0")});
 if(BETA&&!S.reg){S.alerts=[];S.feed=S.feed.filter(f=>f.k!=="aviso");reg("sistema","Registro iniciado · avisos anteriores borrados");save(true)}
 (function(){let n=0;Object.entries(EANS).forEach(([id,c])=>{const v=V(id);if(v&&!v.codes.includes(c)&&!S.items.some(x=>x.codes.includes(c))){v.codes.unshift(c);n++}});if(n){log("info",`${n} códigos de barras cargados del catálogo del proveedor`);save(true)}})();
+const ACCK="psf-acc",ACCURL="https://raw.githubusercontent.com/getkiprojects/puro-sabor/main/datos/acceso.json";
+let ACC=(()=>{try{return JSON.parse(localStorage.getItem(ACCK))||{}}catch(e){return{}}})(),accBusy=false;
+const accLocked=()=>ACC.st==="bloqueado",accDay=()=>new Date().toLocaleDateString("sv");
+async function accCheck(force){if(accBusy||!navigator.onLine)return;if(!force&&!accLocked()&&ACC.day===accDay())return;accBusy=true;
+  try{const r=await fetch(ACCURL+"?t="+Date.now(),{cache:"no-store"});let st=null;
+    if(r.status===404)st="abierto";else if(r.ok){const j=await r.json();st=String(j.estado||"").toLowerCase().includes("bloq")?"bloqueado":"abierto"}
+    if(st){const prev=ACC.st||"abierto";ACC={st,day:accDay(),at:Date.now()};try{localStorage.setItem(ACCK,JSON.stringify(ACC))}catch(e){}
+      if(prev!==st)reg("sistema",st==="bloqueado"?"Programa bloqueado desde el interruptor de GitHub":"Programa desbloqueado desde el interruptor de GitHub")}}
+  catch(e){}accBusy=false;accPaint()}
+function accPaint(){let el=document.getElementById("lockScr");
+  if(!accLocked()){if(el)el.remove();return}
+  if(!el){el=document.createElement("div");el.id="lockScr";el.style.cssText="position:fixed;inset:0;z-index:2147483647;background:#f6f7f9;display:flex;align-items:center;justify-content:center;text-align:center;padding:24px;font-family:inherit";
+    el.innerHTML='<div style="max-width:420px"><div style="font-size:56px">🔒</div><h2 style="margin:8px 0">Programa bloqueado</h2><p class="muted">El responsable ha bloqueado el acceso a este programa. Los datos siguen guardados en este equipo.</p><p class="muted small" id="lockAt"></p><button class="btn primary" id="lockChk" style="margin-top:12px">Comprobar de nuevo</button></div>';
+    document.body.appendChild(el);el.querySelector("#lockChk").onclick=()=>{toast(navigator.onLine?"Comprobando…":"Sin internet");accCheck(true)}}
+  const a=el.querySelector("#lockAt");if(a)a.textContent=ACC.at?"Comprobado: "+new Date(ACC.at).toLocaleString("es-ES"):""}
+window.addEventListener("keydown",e=>{if(accLocked()){e.stopImmediatePropagation();e.preventDefault()}},true);
+setInterval(()=>accCheck(false),60000);
 const GHK="psf-gh";let GH=(()=>{try{return JSON.parse(localStorage.getItem(GHK))||{}}catch(e){return{}}})(),ghBusy=false,ghMsg="";
 (function(){const h=location.hostname;if(!GH.o&&/\.github\.io$/i.test(h)){GH.o=h.split(".")[0];GH.r=location.pathname.split("/").filter(Boolean)[0]||h}})();
 const ghStore=()=>{try{localStorage.setItem(GHK,JSON.stringify(GH))}catch(e){}};
@@ -2098,7 +2116,7 @@ try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist()}
 lastReal=performance.now();
 setInterval(tick,400);
 render();
-setTimeout(ghPull,1500);
+setTimeout(ghPull,1500);accPaint();setTimeout(()=>accCheck(false),1000);
 loadImgs().then(()=>{render();if(allImgFiles().some(f=>!IMGDATA["L:"+f]))downloadImgs(false)});
 })();
 </script>
