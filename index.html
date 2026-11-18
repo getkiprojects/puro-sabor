@@ -315,7 +315,7 @@ body{padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-ri
 body:has(.tkback) header.top{z-index:16;position:relative}
 .ticket.big{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);width:min(760px,94vw);max-height:88vh;overflow:auto;z-index:15;box-shadow:0 20px 60px rgba(0,0,0,.25);padding:24px}
 .ticket.big .tl{font-size:17px;padding:12px 0}.ticket.big .vimg{width:64px;height:64px}.ticket.big .total b{font-size:40px}.ticket.big .qty button{width:44px;height:40px;font-size:20px}
-.dtabs{display:flex;gap:6px;margin-top:16px;border-bottom:1px solid var(--line)}.dtabs button{background:none;border:0;border-bottom:3px solid transparent;padding:8px 10px;font:inherit;font-weight:700;color:var(--muted);cursor:pointer}.dtabs button[aria-selected=true]{color:var(--brand);border-bottom-color:var(--brand)}
+.dtabs{display:flex;gap:6px;margin-top:16px;border-bottom:1px solid var(--line)}.dtabs{flex-wrap:wrap}.dtabs button{white-space:nowrap}.dtabs button{background:none;border:0;border-bottom:3px solid transparent;padding:8px 10px;font:inherit;font-weight:700;color:var(--muted);cursor:pointer}.dtabs button[aria-selected=true]{color:var(--brand);border-bottom-color:var(--brand)}
 .dpanel{padding:10px 0;display:grid;gap:8px;justify-items:start}.dtext{white-space:pre-wrap;line-height:1.5;max-height:220px;overflow:auto}.dpanel textarea{width:100%;font:inherit;padding:10px;border:1px solid var(--line);border-radius:10px}
 .phwrap{position:relative;margin-top:12px;display:grid;justify-items:center}.phwrap canvas{max-width:100%;touch-action:none;border-radius:8px;cursor:crosshair}
 #phSel{position:absolute;border:3px solid var(--brand);background:rgba(29,78,137,.15);pointer-events:none;border-radius:4px}
@@ -364,7 +364,7 @@ body:has(.tkback) header.top{z-index:16;position:relative}
   <div class="wrap">
     <div class="bar">
       <div class="brand"><span class="logo" aria-hidden="true">PS</span><div><b>Puro Sabor Fit</b><small>Nutrición deportiva · Estepona</small></div></div>
-      <span class="demo">Versión 1.0.3</span>
+      <span class="demo">Versión 1.0.4</span>
       <span class="sp"></span>
       <span class="hclock num" id="hclock"></span>
       <span id="reset" hidden></span>
@@ -767,8 +767,10 @@ function addToCart(v,q){
 const modeName=m=>({vender:"Vender",recibir:"Recibir mercancía",recuento:"Recuento",vincular:"Vincular códigos"}[m]);
 let linkSkip=0;
 const unlinked=()=>S.items.filter(v=>!v.codes.length);
+let linkN=0;
+function linkExit(){save(true);reg("codigo",`Vincular códigos terminado · ${linkN} código${linkN===1?"":"s"} nuevo${linkN===1?"":"s"}`);const n=linkN;linkN=0;S.mode="vender";view="caja";showVid=null;save(true);render();toast(n?`Guardado: ${n} código${n===1?"":"s"} nuevo${n===1?"":"s"}`:"Guardado");if(typeof GH!=="undefined"&&GH.t)ghSync(false)}
 function curLink(){const u=unlinked();if(!u.length)return null;return u[linkSkip%u.length]}
-function linkNext(code){const cur=curLink();if(!cur){toast("Todos los productos tienen ya código");return}const ex=byCode(code);if(ex){toast(`Ese código ya es de ${lab(ex)}`);return}cur.codes.push(code);log("info",`Código ${code} vinculado a ${lab(cur)}`);S.lastScan={code,vid:cur.id,t:Date.now(),mode:"vincular",msg:"Vinculado"};toast(`Vinculado: ${lab(cur)}`);render()}
+function linkNext(code){const cur=curLink();if(!cur){toast("Todos los productos tienen ya código");return}const ex=byCode(code);if(ex){toast(`Ese código ya es de ${lab(ex)}`);return}cur.codes.push(code);linkN++;reg("codigo",`Código ${code} vinculado a ${lab(cur)}`);save(true);S.lastScan={code,vid:cur.id,t:Date.now(),mode:"vincular",msg:"Vinculado"};toast(`Vinculado: ${lab(cur)}`);render()}
 function handleScan(code){if(accLocked())return;
   code=String(code).trim().replace(/\s+/g,"");
   if(!code)return;
@@ -1043,8 +1045,8 @@ function vCatalogo(){
     <div class="sc-price num">${money(v.price)}</div>
     ${w?`<div class="wpbox big"><b class="dto">Este producto tiene un ${pctOff(v,w)} % de descuento</b><s class="webp big">${money(w)}</s></div><p class="muted small" style="margin:2px 0 0">Precio en la web de ${webSrc(v.pid)}</p>`:""}
     <p class="muted small" style="margin:8px 0 0">${esc(brandOf(v))} · ${esc(CATS[v.cat])}${v.codes.length?` · <span class="num">${esc(v.codes[0])}</span>`:""}</p>
-    <div class="dtabs" role="tablist"><button role="tab" data-sctab="d" aria-selected="${scTab==="d"}">Descripción del producto</button><button role="tab" data-sctab="m" aria-selected="${scTab==="m"}">Modo de empleo</button></div>
-    ${scTab?`<div class="dpanel">${txt?`<div class="dtext">${esc(txt)}</div>`:`<p class="muted small" style="margin:0">Sin texto todavía. Se escribe desde la ficha del producto (pestaña Venta o Inventario).</p>`}</div>`:""}
+    <div class="dtabs" role="tablist"><button role="tab" data-sctab="d" aria-selected="${scTab==="d"}">Descripción del producto</button><button role="tab" data-sctab="m" aria-selected="${scTab==="m"}">Modo de empleo</button><button role="tab" data-sctab="c" aria-selected="${scTab==="c"}">Cambiar o añadir código de barras</button></div>
+    ${scTab==="c"?codePanel(v):scTab?`<div class="dpanel">${txt?`<div class="dtext">${esc(txt)}</div>`:`<p class="muted small" style="margin:0">Sin texto todavía. Se escribe desde la ficha del producto (pestaña Venta o Inventario).</p>`}</div>`:""}
     <div class="actions" style="margin-top:14px"><button class="btn primary" data-scadd="${v.id}" ${avail(v)<=0?"disabled":""}>${avail(v)<=0?"Agotado":"Añadir a la venta"}</button><button class="btn" data-act="scClear">Quitar de pantalla</button></div></div>`}
   return `<div class="view-head"><div><h2>Catálogo</h2><p>Pasa un producto por el lector o tócalo: se muestra en grande para el cliente. El siguiente sustituye al anterior.</p></div><span class="sp"></span>${n?`<button class="btn primary" data-view="venta">Ir a la venta · ${n} producto${n>1?"s":""} · ${money(S.cart.reduce((a,i)=>a+i.qty*V(i.vid).price,0))}</button>`:""}<button class="btn" data-act="cam">Escanear con la cámara</button></div>
   <div class="pos cat">
@@ -1139,20 +1141,23 @@ function openDetail(v,fromList){if(!v)return;if(!lastDet||lastDet.v!==v){detTab=
   <div><h2 style="margin:0">${esc(v.name)}</h2>${v.flavor?`<p style="margin:4px 0 0;font-size:18px">${esc(v.flavor)}</p>`:""}
   <p class="det-price num">${money(v.price)}${webPrice(v)?`<span class="wpbox big"><b class="dto">Este producto tiene un ${pctOff(v,webPrice(v))} % de descuento</b><s class="webp big">${money(webPrice(v))}</s></span><span class="muted small" style="display:block;font-weight:400;font-size:13px">Tachado: precio en la web de ${webSrc(v.pid)}</span>`:webNote(v)?`<span class="muted small" style="display:block;font-weight:400;font-size:13px">Ojo: la web de la marca lo vende a ${money(WEBO[v.pid])}</span>`:""}</p>
   <div class="det-spec"><span>Marca</span><b>${esc(brandOf(v))}</b><span>Categoría</span><b>${esc(CATS[v.cat])}</b><span>Código</span><b class="num">${v.codes.length?esc(v.codes[0]):"sin código"}</b><span>Stock</span><b class="num">${v.inited||!BETA?v.stock+" uds":"sin contar"}</b>${inC?`<span>En el carrito</span><b class="num">${inC}</b>`:""}</div></div></div>
-  ${(()=>{const D=pdesc(v),txt=detTab==="d"?D.d:D.m;return`<div class="dtabs" role="tablist"><button role="tab" data-dtab="d" aria-selected="${detTab==="d"}">Descripción del producto</button><button role="tab" data-dtab="m" aria-selected="${detTab==="m"}">Modo de empleo</button></div>
-  ${detTab?`<div class="dpanel">${detEdit?`<textarea id="dTxt" rows="6" placeholder="${detTab==="d"?"Qué es, para qué sirve, ingredientes destacados…":"Dosis, cuándo tomarlo, con qué mezclarlo…"}">${esc(txt)}</textarea><div class="actions" style="margin-top:8px"><button class="btn sm primary" data-act="dSave">Guardar texto</button><button class="btn sm ghost" data-act="dCancel">Cancelar</button></div>`
+  ${(()=>{const D=pdesc(v),txt=detTab==="d"?D.d:D.m;return`<div class="dtabs" role="tablist"><button role="tab" data-dtab="d" aria-selected="${detTab==="d"}">Descripción del producto</button><button role="tab" data-dtab="m" aria-selected="${detTab==="m"}">Modo de empleo</button><button role="tab" data-dtab="c" aria-selected="${detTab==="c"}">Cambiar o añadir código de barras</button></div>
+  ${detTab==="c"?codePanel(v):detTab?`<div class="dpanel">${detEdit?`<textarea id="dTxt" rows="6" placeholder="${detTab==="d"?"Qué es, para qué sirve, ingredientes destacados…":"Dosis, cuándo tomarlo, con qué mezclarlo…"}">${esc(txt)}</textarea><div class="actions" style="margin-top:8px"><button class="btn sm primary" data-act="dSave">Guardar texto</button><button class="btn sm ghost" data-act="dCancel">Cancelar</button></div>`
     :txt?`<div class="dtext">${esc(txt)}</div><div style="display:flex;gap:10px;align-items:center"><button class="btn sm ghost" data-act="dEdit">Editar</button>${D.src==="web"&&!D.manual?`<span class="muted small">Texto de purosaborfit.com</span>`:""}</div>`:`<p class="muted small" style="margin:0">Sin texto todavía.${!S.descAt?" Puedes importarlo de la web en Ajustes › Descripciones.":""}</p><button class="btn sm" data-act="dEdit">Escribir ${detTab==="d"?"descripción":"modo de empleo"}</button>`}</div>`:""}`})()}
-  <div class="actions"><button class="btn primary" data-addok="${v.id}" ${left<=0?"disabled":""}>${left<=0?"Agotado":"Añadir al carrito"}</button>${v.codes.length?"":`<button class="btn" data-addcode="${v.id}">Añadir código de barras</button>`}<button class="btn" ${detCtx==="list"?`data-back="${v.id}"`:detCtx==="confirm"?'data-act="cfBack"':'data-act="closeModalBtn"'}>Atrás</button></div>
+  <div class="actions"><button class="btn primary" data-addok="${v.id}" ${left<=0?"disabled":""}>${left<=0?"Agotado":"Añadir al carrito"}</button><button class="btn" ${detCtx==="list"?`data-back="${v.id}"`:detCtx==="confirm"?'data-act="cfBack"':'data-act="closeModalBtn"'}>Atrás</button></div>
   <p class="note">Intro también añade al carrito.</p>`)}
-function openAddCode(v){codeCapture=v.id;
-  modal(`<h2>Añadir código de barras</h2><p class="muted" style="margin:0">${esc(lab(v))}</p>
+let codeRepl=false,acFrom=null;
+function codePanel(v){return`<div class="dpanel"><p class="small" style="margin:0 0 8px"><b>${v.codes.length?"Códigos de este producto":"Este producto aún no tiene código de barras"}</b></p>${v.codes.map((c,i)=>`<div style="display:flex;align-items:center;gap:10px;margin:4px 0"><span class="num" style="font-size:17px">${esc(c)}</span>${i===0&&v.codes.length>1?'<span class="muted small">principal</span>':""}<button class="btn sm ghost" data-delcode="${v.id}|${esc(c)}">Quitar</button></div>`).join("")}<div class="actions" style="margin-top:8px">${v.codes.length?`<button class="btn sm primary" data-chgcode="${v.id}">Cambiar código</button>`:""}<button class="btn sm${v.codes.length?"":" primary"}" data-addcode="${v.id}">${v.codes.length?"Añadir otro código":"Añadir código"}</button></div></div>`}
+function codeBack(v){if(acFrom==="sc"){acFrom=null;closeModal();render()}else openDetail(v,lastDet&&lastDet.v===v?lastDet.fromList:null)}
+function openAddCode(v,repl){codeCapture=v.id;codeRepl=!!repl;acFrom=view==="caja"&&BETA&&showVid===v.id&&!$("#layer").innerHTML?"sc":acFrom;
+  modal(`<h2>${codeRepl?"Cambiar código de barras":"Añadir código de barras"}</h2>${codeRepl&&v.codes.length?`<p class="muted small" style="margin:0 0 4px">El código ${esc(v.codes.join(", "))} se sustituirá por el nuevo.</p>`:""}<p class="muted" style="margin:0">${esc(lab(v))}</p>
   <p style="font-size:18px;margin:14px 0 6px"><b>Pasa el bote por el lector ahora</b>, o escribe el código:</p>
   <input id="acIn" class="scan-in" inputmode="numeric" autocomplete="off" placeholder="8412345678901">
   <div class="actions"><button class="btn primary" data-act="acSave">Guardar código</button><button class="btn" data-act="acCancel">Cancelar</button></div>`);const i=$("#acIn");if(i)i.focus()}
 function setCode(vid,code){const v=V(vid);codeCapture=null;code=String(code||"").replace(/\s+/g,"");
-  if(!v)return;if(!/^\d{6,14}$/.test(code)){toast("Ese código no parece válido");openAddCode(v);return}
-  const o=byCode(code);if(o&&o!==v){toast(`Ese código ya es de ${lab(o)}`);openAddCode(v);return}
-  if(!v.codes.includes(code))v.codes.unshift(code);reg("codigo",`Código ${code} añadido a ${lab(v)} desde Caja`);save(true);toast(`Código guardado: ${code}`);openDetail(v,lastDet&&lastDet.v===v?lastDet.fromList:null)}
+  if(!v)return;if(!/^\d{6,14}$/.test(code)){toast("Ese código no parece válido");openAddCode(v,codeRepl);return}
+  const o=byCode(code);if(o&&o!==v){toast(`Ese código ya es de ${lab(o)}`);openAddCode(v,codeRepl);return}
+  if(codeRepl){const old=v.codes.filter(c=>c!==code);v.codes=[code];reg("codigo",`Código de ${lab(v)} cambiado${old.length?` de ${old.join(", ")}`:""} a ${code}`)}else{if(!v.codes.includes(code))v.codes.unshift(code);reg("codigo",`Código ${code} añadido a ${lab(v)}`)}codeRepl=false;save(true);toast(`Código guardado: ${code}`);codeBack(v)}
 function openProduct(p){
   const vs=p.vids.map(V);
   if(vs.length===1){if(view==="caja"&&BETA){showcase(vs[0]);return}openDetail(vs[0]);return}
@@ -1180,7 +1185,7 @@ function vLector(){
       ${BETA?`<p class="note">La primera vez que pases un bote, el programa no conocerá su código: te pedirá que elijas el producto y el sabor, y lo recordará para siempre. Hazlo con calma la primera semana.</p>`:""}
     </section>
     <div class="grid" style="align-content:start">
-      ${S.mode==="vincular"?(()=>{const cur=curLink();const done=S.items.length-unlinked().length;return`<section class="panel"><h3>Vincular códigos · ${done} de ${S.items.length}</h3>${cur?`${im(imgOf(cur),"bigimg")}<p style="text-align:center;font-size:20px;margin:6px 0 2px"><b>${esc(cur.name)}</b></p><p style="text-align:center;margin:0" class="muted">${esc(cur.flavor||"")}</p><p class="note" style="text-align:center">Pasa ahora este bote por el lector.</p><div class="actions" style="justify-content:center"><button class="btn" data-act="linkSkip">Saltar, no lo tengo delante</button></div>`:`<p class="empty">Todos los productos tienen código.</p>`}</section>`})():""}
+      ${S.mode==="vincular"?(()=>{const cur=curLink();const done=S.items.length-unlinked().length;return`<section class="panel"><h3>Vincular códigos · ${done} de ${S.items.length}</h3>${cur?`${im(imgOf(cur),"bigimg")}<p style="text-align:center;font-size:20px;margin:6px 0 2px"><b>${esc(cur.name)}</b></p><p style="text-align:center;margin:0" class="muted">${esc(cur.flavor||"")}</p><p class="note" style="text-align:center">Pasa ahora este bote por el lector.</p><div class="actions" style="justify-content:center"><button class="btn" data-act="linkSkip">Saltar, no lo tengo delante</button><button class="btn primary" data-act="linkExit">Guardar y salir</button></div>`:`<p class="empty">Todos los productos tienen código.</p><div class="actions" style="justify-content:center"><button class="btn primary" data-act="linkExit">Guardar y salir</button></div>`}</section>`})():""}
       ${S.mode==="vender"?(()=>{const tot=S.cart.reduce((a,i)=>a+i.qty*V(i.vid).price,0);return`<section class="panel"><h3>Venta en curso</h3>
         ${S.cart.length?`<div class="list">${S.cart.map(i=>{const v=V(i.vid);return`<div class="tl"><span>${esc(lab(v))}</span><span class="qty"><button data-dec="${v.id}" aria-label="Quitar uno">−</button><span class="num">${i.qty}</span><button data-inc="${v.id}" aria-label="Añadir uno" ${i.qty>=avail(v)?"disabled":""}>+</button></span><b class="num">${money(i.qty*v.price)}</b></div>`}).join("")}</div>
         <div class="total"><span class="label">Total</span><b class="num">${money(tot)}</b></div>
@@ -1892,8 +1897,10 @@ document.addEventListener("click",e=>{
   if(d.act==="dCancel"){detEdit=false;if(lastDet)openDetail(lastDet.v,lastDet.fromList);return}
   if(d.act==="dSave"){const v=lastDet&&lastDet.v;if(!v)return;S.desc=S.desc||{};const D=Object.assign({d:"",m:""},S.desc[v.pid]);D[detTab]=($("#dTxt").value||"").trim();D.manual=true;S.desc[v.pid]=D;reg("ajustes",`${detTab==="d"?"Descripción":"Modo de empleo"} de ${v.name} actualizado`);save(true);detEdit=false;openDetail(v,lastDet.fromList);toast("Texto guardado");return}
   if(d.addcode){openAddCode(V(d.addcode));return}
+  if(d.chgcode){openAddCode(V(d.chgcode),true);return}
+  if(d.delcode){const [id,c]=d.delcode.split("|"),v=V(id);if(v){v.codes=v.codes.filter(x=>x!==c);reg("codigo",`Código ${c} quitado de ${lab(v)}`);save(true);toast("Código quitado");if($("#layer").innerHTML&&lastDet&&lastDet.v===v)openDetail(v,lastDet.fromList);else render()}return}
   if(d.act==="acSave"){const i=$("#acIn");setCode(codeCapture,i?i.value:"");return}
-  if(d.act==="acCancel"){const v=V(codeCapture);codeCapture=null;if(v)openDetail(v,lastDet&&lastDet.v===v?lastDet.fromList:null);else closeModal();return}
+  if(d.act==="acCancel"){const v=V(codeCapture);codeCapture=null;codeRepl=false;if(v)codeBack(v);else closeModal();return}
   if(d.act==="phL"||d.act==="phR"){ph.rot=(ph.rot+(d.act==="phR"?90:270))%360;ph.crop=null;phDraw();const b=$('[data-act="phX"]');if(b)b.disabled=true;return}
   if(d.act==="phX"){ph.crop=null;phSel();b.disabled=true;return}
   if(d.act==="phGo"){const c=prepCanvas(ph.bmp,ph.rot,ph.crop);try{repoPhoto=c.toDataURL("image/jpeg",.7)}catch(e){}closeModal();runOcr(c);return}
@@ -1968,6 +1975,7 @@ document.addEventListener("click",e=>{
   if(d.ist){const[id,dd]=d.ist.split("|");const v=V(id);if(!v)return;const cur=(invPend[id]||0)+ +dd;if(v.stock+cur<0)return;if(cur)invPend[id]=cur;else delete invPend[id];render();return}
   if(d.act==="invDiscard"){invPend={};render();toast("Cambios descartados");return}
   if(d.act==="invSave"){const ids=Object.keys(invPend);ids.forEach(id=>{const v=V(id);if(!v)return;const q=Math.max(0,v.stock+invPend[id]);S.moves.push({t:now(),vid:id,qty:q-v.stock,reason:"Ajuste en inventario"});reg("stock",`Inventario: ${lab(v)} ${v.stock} → ${q}`);v.stock=q;touch(v);if(v.stock>v.min)v.alerted=false;check(v)});invPend={};save(true);render();toast(`Stock guardado · ${ids.length} ${ids.length>1?"referencias":"referencia"}`);return}
+  if(d.act==="linkExit"){linkExit();return}
   if(d.act==="linkSkip"){linkSkip++;render();const si=$("#scanIn");if(si)si.focus();return}
   if(d.act==="backup"){downloadBackup();return}
   if(d.act==="restore"){const i=document.getElementById("restoreFile");if(i)i.click();return}
