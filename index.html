@@ -325,7 +325,7 @@ body:has(.tkback) header.top{z-index:16;position:relative}
 .webp{color:var(--muted);font-weight:600;font-size:.85em;margin-left:6px;text-decoration-thickness:2px}.webp.big{font-size:22px}
 .modal.wide{max-width:980px}.plp{-webkit-print-color-adjust:exact;print-color-adjust:exact;width:100%;border-collapse:collapse;font-size:13px}.plp th{text-align:left;background:#1D4E89;color:#fff;padding:6px}.plp td{padding:5px 6px;border-bottom:1px solid #ccc;vertical-align:middle}.plp img{width:52px;height:52px;object-fit:contain;display:block}.plp .wr{border:1px solid #999;min-width:140px;height:40px}.plp .wr.sm{min-width:26px}.plp tr{page-break-inside:avoid}
 .dsc{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:6px}.dsc button{padding:10px 4px;border:1px solid var(--line);border-radius:10px;background:var(--surface);font:inherit;font-weight:700;cursor:pointer}.dsc button[aria-pressed=true]{background:var(--brand);border-color:var(--brand);color:#fff}@media (max-width:520px){.dsc{grid-template-columns:repeat(3,1fr)}}
-.pos.cat{grid-template-columns:minmax(0,1.1fr) minmax(0,1fr)}.scase{min-height:420px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px;align-items:start;position:sticky;top:12px}.scase.empty{display:grid;place-items:center}
+.pos.cat{grid-template-columns:minmax(0,1.1fr) minmax(0,1fr)}.pos.cat.full{grid-template-columns:minmax(0,1fr)}.scase{min-height:420px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px;align-items:start;position:sticky;top:12px}.scase.empty{display:grid;place-items:center}
 .sc-img{background:#fff;border-radius:14px;padding:10px;display:grid;place-items:center;min-height:300px}.sc-img img{max-width:100%;max-height:440px;object-fit:contain}.sc-info h2{margin:0;font-size:26px}.sc-fl{margin:2px 0 0;font-size:19px}.sc-price{font-size:44px;font-weight:800;margin:8px 0 2px}
 .sc-empty{text-align:center;color:var(--muted);max-width:360px;margin:auto}.big-ico{font-size:54px;margin:0 0 6px}
 .pos.vt{grid-template-columns:minmax(0,1fr) 340px}.vt-tot-box{text-align:right}.vt-sub{font-size:16px;color:var(--muted)}
@@ -364,7 +364,7 @@ body:has(.tkback) header.top{z-index:16;position:relative}
   <div class="wrap">
     <div class="bar">
       <div class="brand"><span class="logo" aria-hidden="true">PS</span><div><b>Puro Sabor Fit</b><small>Nutrición deportiva · Estepona</small></div></div>
-      <span class="demo">Versión 1.0.6</span>
+      <span class="demo">Versión 1.0.7</span>
       <span class="sp"></span>
       <span class="hclock num" id="hclock"></span>
       <span id="reset" hidden></span>
@@ -1050,10 +1050,10 @@ function vCatalogo(){
     <p class="muted small" style="margin:8px 0 0">${esc(brandOf(v))} · ${esc(CATS[v.cat])}${v.codes.length?` · <span class="num">${esc(v.codes[0])}</span>`:""}</p>
     <div class="dtabs" role="tablist"><button role="tab" data-sctab="d" aria-selected="${scTab==="d"}">Descripción del producto</button><button role="tab" data-sctab="m" aria-selected="${scTab==="m"}">Modo de empleo</button><button role="tab" data-sctab="c" aria-selected="${scTab==="c"}">Cambiar o añadir código de barras</button></div>
     ${scTab==="c"?codePanel(v):scTab?`<div class="dpanel">${txt?`<div class="dtext">${esc(txt)}</div>`:`<p class="muted small" style="margin:0">Sin texto todavía. Se escribe desde la ficha del producto (pestaña Venta o Inventario).</p>`}</div>`:""}
-    <div class="actions" style="margin-top:14px"><button class="btn primary" data-scadd="${v.id}" ${avail(v)<=0?"disabled":""}>${avail(v)<=0?"Agotado":"Añadir a la venta"}</button><button class="btn" data-act="scClear">Quitar de pantalla</button></div></div>`}
-  return `<div class="view-head"><div><h2>Catálogo</h2><p>Pasa un producto por el lector o tócalo: se muestra en grande para el cliente. El siguiente sustituye al anterior.</p></div><span class="sp"></span>${n?`<button class="btn primary" data-view="venta">Ir a la venta · ${n} producto${n>1?"s":""} · ${money(S.cart.reduce((a,i)=>a+i.qty*V(i.vid).price,0))}</button>`:""}<button class="btn" data-act="cam">Escanear con la cámara</button></div>
-  <div class="pos cat">
-    <section id="scase" class="panel scase${v?"":" empty"}">${sc}</section>
+    <div class="actions" style="margin-top:14px"><button class="btn primary" data-scadd="${v.id}" ${avail(v)<=0?"disabled":""}>${avail(v)<=0?"Agotado":"Añadir a la venta"}</button><button class="btn" data-act="scClear">Atrás</button></div></div>`}
+  return `<div class="view-head"><div><h2>Catálogo</h2><p>Toca un producto o pásalo por el lector: aparece en grande al lado. «Atrás» lo quita.</p></div><span class="sp"></span>${n?`<button class="btn primary" data-view="venta">Ir a la venta · ${n} producto${n>1?"s":""} · ${money(S.cart.reduce((a,i)=>a+i.qty*V(i.vid).price,0))}</button>`:""}<button class="btn" data-act="cam">Escanear con la cámara</button></div>
+  <div class="pos cat${v?"":" full"}">
+    ${v?`<section id="scase" class="panel scase">${sc}</section>`:""}
     <section style="min-width:0">
       <input class="search" id="posQ" type="search" placeholder="Buscar producto, sabor o código" value="${esc(posQ)}" aria-label="Buscar producto">
       <div class="chips">${cats.map((c,i)=>`<button class="chip" data-cat="${esc(c)}" aria-pressed="${S.cat===c}">${i?`<span class="dotc" style="background:${ccol(i-1)}"></span>`:""}${esc(c)}</button>`).join("")}</div>
