@@ -364,7 +364,7 @@ body:has(.tkback) header.top{z-index:16;position:relative}
   <div class="wrap">
     <div class="bar">
       <div class="brand"><span class="logo" aria-hidden="true">PS</span><div><b>Puro Sabor Fit</b><small>Nutrición deportiva · Estepona</small></div></div>
-      <span class="demo">Versión 1.0.4</span>
+      <span class="demo">Versión 1.0.6</span>
       <span class="sp"></span>
       <span class="hclock num" id="hclock"></span>
       <span id="reset" hidden></span>
@@ -590,9 +590,10 @@ function basket(pick,R){
 }
 
 let lastSave=0;
-function save(force){const n=performance.now();if(!force&&n-lastSave<1500)return;lastSave=n;try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+function save(force){const n=performance.now();if(!force&&n-lastSave<1500)return;lastSave=n;try{localStorage.setItem(KEY,JSON.stringify(S));saveFail=false}catch(e){if(!saveFail)setTimeout(()=>toast("¡Atención! No se ha podido guardar en este equipo. Avisa antes de seguir."),0);saveFail=true}}
+let saveFail=false;
 const VIEWS=BETA?["caja","venta","lector","inventario","pedidos","reposiciones","avisos","ajustes","resumen"]:["directo","resumen","caja","lector","inventario","pedidos","reposiciones","avisos"];
-let view=BETA?"caja":"directo",invEdit=false,invPend={},selAlert=null,invFilter="todos",invCat="",invQ="",posQ="",confirmReset=false,linkQ="";
+let view=BETA?"venta":"directo",invEdit=false,invPend={},selAlert=null,invFilter="todos",invCat="",invQ="",posQ="",confirmReset=false,linkQ="";
 const flash={};
 try{const h=location.hash.replace("#","");if(VIEWS.includes(h))view=h}catch(e){}
 
@@ -920,6 +921,7 @@ function renderTabs(){
 // 0 → Agotado · ≤ 1/3 del máximo (objetivo) → Queda poco · sin contar todavía → Sin contar
 const isOut=v=>(!BETA||v.inited)&&v.stock<=0;
 const isFew=v=>(!BETA||v.inited)&&v.stock>0&&v.stock<=v.target/3;
+const stockLine=v=>BETA&&!v.inited?`Stock en tienda: <b>sin contar</b>`:`Stock en tienda: <b class="num">${v.stock} ud${v.stock===1?"":"s"}</b> ${stockPill(v)}`;
 function stockPill(v){
   if(BETA&&!v.inited)return`<span class="pill">Sin contar</span>`;
   if(v.stock<=0)return`<span class="pill crit">Agotado</span>`;
@@ -1043,6 +1045,7 @@ function vCatalogo(){
     sc=`<div class="sc-img">${src?`<img src="${src}" alt="${esc(lab(v))}" onerror="this.style.display='none'">`:`<p class="empty">Sin foto</p>`}</div>
     <div class="sc-info"><h2>${esc(v.name)}</h2>${v.flavor?`<p class="sc-fl">${esc(v.flavor)}</p>`:""}
     <div class="sc-price num">${money(v.price)}</div>
+    <p class="sc-stock" style="margin:6px 0 0;font-size:18px">${stockLine(v)}</p>
     ${w?`<div class="wpbox big"><b class="dto">Este producto tiene un ${pctOff(v,w)} % de descuento</b><s class="webp big">${money(w)}</s></div><p class="muted small" style="margin:2px 0 0">Precio en la web de ${webSrc(v.pid)}</p>`:""}
     <p class="muted small" style="margin:8px 0 0">${esc(brandOf(v))} · ${esc(CATS[v.cat])}${v.codes.length?` · <span class="num">${esc(v.codes[0])}</span>`:""}</p>
     <div class="dtabs" role="tablist"><button role="tab" data-sctab="d" aria-selected="${scTab==="d"}">Descripción del producto</button><button role="tab" data-sctab="m" aria-selected="${scTab==="m"}">Modo de empleo</button><button role="tab" data-sctab="c" aria-selected="${scTab==="c"}">Cambiar o añadir código de barras</button></div>
@@ -1066,7 +1069,7 @@ function vVenta(){
   <div class="pos vt">
     <section class="panel vt-main">
       <div class="vt-head"><div><span class="label">Total estimado</span><div class="muted">${n} producto${n!==1?"s":""}${ahorro>0.005?` · <span class="vt-save">ahorro ${money(ahorro)}</span>`:""}</div></div><div class="vt-tot-box">${dsc?`<div class="vt-sub num"><s>${money(sub)}</s> <span class="vt-save">−${pct} %</span></div>`:""}<div class="vt-total num">${money(tot)}</div></div></div>
-      <div class="vt-list">${S.cart.length?S.cart.map(i=>{const v=V(i.vid),w=webPrice(v);return`<div class="vt-row">${im(imgOf(v),"vt-img")}<div class="vt-txt"><b>${esc(v.name)}</b>${v.flavor?`<div class="muted">${esc(v.flavor)}</div>`:""}${v.codes.length?`<div class="muted small num">Código: ${esc(v.codes[0])}</div>`:""}${w?`<div class="vt-dto">🏷 ${pctOff(v,w)} % de descuento aplicado</div>`:""}</div>
+      <div class="vt-list">${S.cart.length?S.cart.map(i=>{const v=V(i.vid),w=webPrice(v);return`<div class="vt-row">${im(imgOf(v),"vt-img")}<div class="vt-txt"><b>${esc(v.name)}</b>${v.flavor?`<div class="muted">${esc(v.flavor)}</div>`:""}${v.codes.length?`<div class="muted small num">Código: ${esc(v.codes[0])}</div>`:""}<div class="small" style="margin-top:2px">${stockLine(v)}</div>${w?`<div class="vt-dto">🏷 ${pctOff(v,w)} % de descuento aplicado</div>`:""}</div>
         <div class="vt-qty"><button data-dec="${v.id}" aria-label="Una menos">−</button><b class="num">${i.qty}</b><button data-inc="${v.id}" aria-label="Una más" ${i.qty>=avail(v)?"disabled":""}>+</button></div>
         <div class="vt-price num"><b>${money(v.price*i.qty)}</b>${w?`<s class="webp">${money(w*i.qty)}</s>`:""}${i.qty>1?`<div class="muted small">${money(v.price)} / ud</div>`:""}</div></div>`}).join(""):`<div class="sc-empty"><p class="big-ico" aria-hidden="true">🛒</p><p><b>Todavía no hay productos.</b><br>Pasa uno por el lector o búscalo a la derecha.</p></div>`}</div>
     </section>
@@ -1645,7 +1648,10 @@ const waLink=(phone,text)=>{const d=String(phone||"").replace(/\D/g,"");return d
 const mailLink=(to,subject,body)=>`mailto:${encodeURIComponent(to||"")}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 function fallbackCopy(txt,done){const ta=document.createElement("textarea");ta.value=txt;ta.style.position="fixed";ta.style.opacity="0";document.body.appendChild(ta);ta.select();try{document.execCommand("copy");done()}catch(e){toast("No se ha podido copiar; selecciona el texto a mano")}ta.remove()}
 let printT=null;
-function openTicket(t){
+let preSale=null,preDisc="";
+function snapSale(){const r=S.reg;S.reg=[];try{preSale=JSON.stringify(S)}catch(e){preSale=null}S.reg=r;preDisc=vtDisc}
+function undoSale(){if(!preSale){closeModal();return}const r=S.reg,t=S.tickets.at(-1);S=JSON.parse(preSale);S.reg=r;VMAP=null;vtDisc=preDisc;preSale=null;if(S.sup)Object.keys(SUP).forEach(k=>{if(S.sup[k])Object.assign(SUP[k],S.sup[k])});reg("venta",`Venta${t?" de "+money(t.total):""} anulada con «Atrás» · el carrito vuelve como estaba y el stock no cambia`);save(true);closeModal();render();toast("Venta anulada · el carrito está como antes")}
+function openTicket(t,fresh){if(!fresh)preSale=null;
   const B=S.biz||{};const yr=new Date(t.t).getFullYear();
   if(!t.inv){S.inv=S.inv||{y:yr,n:0};if(S.inv.y!==yr){S.inv.y=yr;S.inv.n=0}S.inv.n++;t.inv=`${yr}-${String(S.inv.n).padStart(4,"0")}`;save(true)}
   const iva=10;const base=round(t.total/(1+iva/100));printT=t;
@@ -1655,7 +1661,7 @@ function openTicket(t){
   ${t.disc?`<tr><td>Subtotal</td><td class="r num">${money(t.total+t.disc)}</td></tr><tr><td>Descuento</td><td class="r num">−${money(t.disc)}</td></tr>`:""}<tr><td>Base imponible</td><td class="r num">${money(base)}</td></tr><tr><td>IVA ${iva} %</td><td class="r num">${money(round(t.total-base))}</td></tr>
   <tr class="tot"><td>TOTAL</td><td class="r num">${money(t.total)}</td></tr></table><p>Gracias por su compra</p></div>
   <label class="field noprint"><span class="label">Cliente (nombre y NIF), solo si pide factura con sus datos</span><input id="tkCli" value="${esc(t.cli||"")}" placeholder="Opcional"></label>
-  <div class="actions noprint"><button class="btn primary" data-act="print">Imprimir</button><button class="btn" data-act="closeModalBtn">Cerrar</button></div>
+  <div class="actions noprint">${fresh?`<button class="btn primary" data-act="print">Imprimir</button><button class="btn" data-act="tkNo">No imprimir</button><button class="btn ghost" data-act="tkBack">Atrás</button>`:`<button class="btn primary" data-act="print">Imprimir</button><button class="btn" data-act="closeModalBtn">Cerrar</button>`}</div>
   <p class="note noprint">${B.nif?"":"Pon el NIF y la dirección de la tienda en Ajustes para que salgan en el ticket. "}IVA aplicado: ${iva} %; confírmalo con tu gestor.</p>`);
 }
 // Abre WhatsApp (o el correo) con el pedido ya escrito, sin pasos intermedios
@@ -1698,7 +1704,7 @@ function downloadBackup(){
 }
 function restoreBackup(file){
   const fr=new FileReader();
-  fr.onload=()=>{try{const x=JSON.parse(String(fr.result||""));if(!x||x.v!==4||!Array.isArray(x.items))throw 0;S=x;VMAP=null;reg("sistema","Copia de seguridad restaurada");if(S.sup)Object.keys(SUP).forEach(k=>{if(S.sup[k])Object.assign(SUP[k],S.sup[k])});save(true);render();toast("Copia restaurada")}catch(e){toast("Ese archivo no es una copia válida de Puro Sabor Fit")}};
+  fr.onload=()=>{try{const x=JSON.parse(String(fr.result||""));if(!x||x.v!==4||!Array.isArray(x.items))throw 0;const keep=MAIN?S.items.reduce((m,v)=>(m[v.id]={stock:v.stock,inited:v.inited},m),{}):null;const kmv=MAIN?S.moves:null;S=x;VMAP=null;if(keep){S.items.forEach(v=>{if(keep[v.id]){v.stock=keep[v.id].stock;v.inited=keep[v.id].inited}});S.moves=kmv}reg("sistema",keep?"Copia de seguridad restaurada · el stock de este equipo (principal) se ha mantenido":"Copia de seguridad restaurada");if(S.sup)Object.keys(SUP).forEach(k=>{if(S.sup[k])Object.assign(SUP[k],S.sup[k])});save(true);render();toast("Copia restaurada")}catch(e){toast("Ese archivo no es una copia válida de Puro Sabor Fit")}};
   fr.onerror=()=>toast("No se ha podido leer el archivo");fr.readAsText(file);
 }
 function setSnap(){const o={};Object.keys(SUP).forEach(k=>{o[`Proveedor ${k} · nombre`]=SUP[k].name;o[`Proveedor ${k} · contacto`]=SUP[k].contact||"";o[`Proveedor ${k} · plazo (días)`]=SUP[k].lead});const w=S.owner||{},b=S.biz||{};
@@ -1916,14 +1922,16 @@ document.addEventListener("click",e=>{
   if(d.act==="charge"){
     S.cart=S.cart.map(i=>({vid:i.vid,qty:Math.min(i.qty,avail(V(i.vid)))})).filter(i=>i.qty>0);
     if(!S.cart.length){render();toast("Esos productos se han agotado mientras tanto");return}
-    if(view==="venta"){const sub=cartSub(),dc=round(sub*vtPct()/100);const t=sell(S.cart,S.pay,null,dc);S.cart=[];vtDisc="";showVid=null;render();toast(`Venta registrada · ${money(t.total)}`);openTicket(t);return}
+    if(view==="venta"){const sub=cartSub(),dc=round(sub*vtPct()/100);snapSale();const t=sell(S.cart,S.pay,null,dc);S.cart=[];vtDisc="";showVid=null;render();toast(`Venta registrada · ${money(t.total)}`);openTicket(t,true);return}
     discTxt="";compOpen=false;openConfirm();return}
   if(d.cfq){const[vid,n]=d.cfq.split("|");const i=S.cart.find(x=>x.vid===vid);if(i){i.qty=Math.max(0,Math.min(i.qty+ +n,avail(V(vid))));if(!i.qty)S.cart=S.cart.filter(x=>x!==i)}render();if(!S.cart.length){closeModal();return}openConfirm();return}
   if(d.act==="cfAdd"){closeModal();render();if(document.activeElement)document.activeElement.blur();toast("Añade productos y vuelve a pulsar «Registrar venta»");return}
   if(d.act==="cfCancel"){closeModal();render();toast("Venta cancelada · los productos siguen en el carrito");return}
   if(d.act==="cfOk"){const sub=cartSub(),dc=discOf(sub);if(dc<0){toast("Descuento no válido");return}
-    const t=sell(S.cart,S.pay,null,dc);S.cart=[];showVid=null;render();toast(`Venta registrada · ${money(t.total)}`);openTicket(t);return}
+    snapSale();const t=sell(S.cart,S.pay,null,dc);S.cart=[];showVid=null;render();toast(`Venta registrada · ${money(t.total)}`);openTicket(t,true);return}
   if(d.ticket){const t=S.tickets.find(x=>x.id===d.ticket);if(t)openTicket(t);return}
+  if(d.act==="tkNo"){const c=$("#tkCli");if(c&&printT&&c.value.trim()){printT.cli=c.value.trim();save(true)}preSale=null;closeModal();return}
+  if(d.act==="tkBack"){undoSale();return}
   if(d.act==="print"){const c=$("#tkCli");if(c&&printT){printT.cli=c.value.trim();save(true)}try{window.print()}catch(e){toast("No se ha podido abrir la impresión")}return}
   if(d.act==="undo"){undoLast();render();return}
   if(d.act==="closeDay"){closeDay(false);render();window.scrollTo(0,0);return}
@@ -1959,7 +1967,7 @@ document.addEventListener("click",e=>{
   if(d.act==="impDesc"){importDesc();return}
   if(d.act==="ghSave"){ghSaveForm();return}
   if(d.act==="ghSync"){ghSync(true);return}
-  if(d.act==="ghCsv"){saveFile(new Blob([codesCsv()],{type:"text/csv"}),"codigos-barras-"+new Date().toISOString().slice(0,10)+".csv");return}
+  if(d.act==="ghCsv"){saveFile(new Blob([codesCsv(stockMap())],{type:"text/csv"}),"codigos-barras-"+new Date().toISOString().slice(0,10)+".csv");return}
   if(d.act==="ghForget"){delete GH.t;GH.sig="";ghMsg="";ghStore();reg("ajustes","Clave de GitHub borrada de este equipo");render();toast("Clave borrada");return}
   if(d.act==="prSinCod"){const L=S.items.filter(v=>!v.codes.length).sort((a,b)=>a.cat-b.cat||a.name.localeCompare(b.name)||a.flavor.localeCompare(b.flavor));const d0=new Date();
     modal(`<div id="plp"><h2 style="margin:0">Productos sin código de barras</h2><p class="muted" style="margin:2px 0 10px">Puro Sabor Fit · ${d0.toLocaleDateString("es-ES")} · ${L.length} productos. Apunta el código y vincúlalo en Caja (ficha › Añadir código de barras).</p>
@@ -2045,7 +2053,7 @@ document.addEventListener("change",e=>{
 });
 document.addEventListener("visibilitychange",()=>{lastReal=performance.now();save(true)});
 
-try{const raw=localStorage.getItem(KEY);if(raw){const x=JSON.parse(raw);if(x&&x.v===4&&Array.isArray(x.items))S=x}}catch(e){}
+let loadBad=false;try{const raw=localStorage.getItem(KEY);if(raw){let x=null;try{x=JSON.parse(raw)}catch(e){}if(x&&x.v===4&&Array.isArray(x.items))S=x;else{loadBad=true;try{localStorage.setItem(KEY+"-rescate-"+Date.now(),raw)}catch(e){}}}}catch(e){}
 if(!S)seed();
 if(S.sup)Object.keys(SUP).forEach(k=>{if(S.sup[k])Object.assign(SUP[k],S.sup[k])});
 if(!S.owner)S.owner={name:"Jose",phone:"",email:""};
@@ -2086,10 +2094,13 @@ const ghStore=()=>{try{localStorage.setItem(GHK,JSON.stringify(GH))}catch(e){}};
 const ghSig=()=>{const s=S.items.map(v=>v.id+":"+v.codes.join(",")).join("|")+JSON.stringify(S.alb||{});let h=0;for(let i=0;i<s.length;i++)h=(h*31+s.charCodeAt(i))|0;return String(h)};
 const b64e=t=>{const b=new TextEncoder().encode(t);let s="";for(let i=0;i<b.length;i+=8192)s+=String.fromCharCode.apply(null,b.subarray(i,i+8192));return btoa(s)};
 const b64d=t=>new TextDecoder().decode(Uint8Array.from(atob(String(t).replace(/\s/g,"")),c=>c.charCodeAt(0)));
-function ghData(){const items={};S.items.forEach(v=>{if(v.codes.length)items[v.id]={n:lab(v),c:v.codes.slice()}});return{v:1,at:new Date().toISOString(),items,alb:S.alb||{}}}
-function codesCsv(){const q=x=>'"'+String(x==null?"":x).replace(/"/g,'""')+'"',t=c=>c?'="'+c+'"':"";
-  const rows=[["Marca","Categoría","Producto","Sabor","Código de barras","Otros códigos","Precio","Stock"].join(";")];
-  S.items.slice().sort((a,b)=>brandOf(a).localeCompare(brandOf(b))||lab(a).localeCompare(lab(b))).forEach(v=>rows.push([q(brandOf(v)),q(CATS[v.cat]),q(v.name),q(v.flavor||""),t(v.codes[0]),q(v.codes.slice(1).join(" ")),String(v.price).replace(".",","),v.stock==null?"":v.stock].join(";")));
+const MAIN=location.protocol==="https:";
+const stockMap=()=>{const m={};S.items.forEach(v=>{m[v.id]=[v.stock,v.inited?1:0]});return m};
+const stSig=()=>JSON.stringify(stockMap());
+function ghData(){const items={};S.items.forEach(v=>{if(v.codes.length)items[v.id]={n:lab(v),c:v.codes.slice()}});return{v:1,at:new Date().toISOString(),items,alb:S.alb||{},stock:MAIN?stockMap():null,stockAt:MAIN?new Date().toISOString():null}}
+function codesCsv(SM){SM=SM||{};const q=x=>'"'+String(x==null?"":x).replace(/"/g,'""')+'"',t=c=>c?'="'+c+'"':"";
+  const rows=[["Marca","Categoría","Producto","Sabor","Código de barras","Otros códigos","Precio","Stock (tablet)"].join(";")];
+  S.items.slice().sort((a,b)=>brandOf(a).localeCompare(brandOf(b))||lab(a).localeCompare(lab(b))).forEach(v=>rows.push([q(brandOf(v)),q(CATS[v.cat]),q(v.name),q(v.flavor||""),t(v.codes[0]),q(v.codes.slice(1).join(" ")),String(v.price).replace(".",","),SM[v.id]&&SM[v.id][1]?SM[v.id][0]:""].join(";")));
   return"﻿"+rows.join("\r\n")}
 function ghMerge(R){let n=0;if(!R||!R.items)return 0;
   Object.entries(R.items).forEach(([id,x])=>{const v=V(id);if(!v||lab(v)!==x.n)return;(x.c||[]).forEach(c=>{if(!v.codes.includes(c)&&!S.items.some(o=>o.codes.includes(c))){v.codes.push(c);n++}})});
@@ -2103,17 +2114,17 @@ async function ghSync(manual){if(ghBusy)return;if(!GH.o||!GH.r||!GH.t){if(manual
   if(!navigator.onLine){ghMsg="Sin internet: se subirá al volver la conexión";if(manual)toast(ghMsg);ghPaint();return}
   ghBusy=true;ghMsg="Subiendo…";ghPaint();
   try{for(let k=0;k<2;k++){try{const J=await ghGet("datos/codigos.json");let R=null;try{R=J.text?JSON.parse(J.text):null}catch(e){}
-      const got=ghMerge(R);const D=ghData(),body=JSON.stringify(D,null,1);
-      const same=R&&JSON.stringify(R.items)===JSON.stringify(D.items)&&JSON.stringify(R.alb||{})===JSON.stringify(D.alb);
+      const got=ghMerge(R);const D=ghData();if(!MAIN){D.stock=R&&R.stock||null;D.stockAt=R&&R.stockAt||null}else if(R&&R.stock&&JSON.stringify(R.stock)===JSON.stringify(D.stock))D.stockAt=R.stockAt;const body=JSON.stringify(D,null,1);
+      const same=R&&JSON.stringify(R.items)===JSON.stringify(D.items)&&JSON.stringify(R.alb||{})===JSON.stringify(D.alb)&&JSON.stringify(R.stock||null)===JSON.stringify(D.stock||null);
       const nc=Object.keys(D.items).length;
-      if(!same){const st=new Date().toLocaleString("es-ES");await ghPut("datos/codigos.json",body,J.sha,"Códigos de barras "+st);const C2=await ghGet("datos/codigos.csv");await ghPut("datos/codigos.csv",codesCsv(),C2.sha,"Códigos de barras (Excel) "+st);reg("codigo",`Copia de códigos subida a GitHub · ${nc} productos con código`)}
-      GH.sig=ghSig();GH.at=Date.now();ghStore();ghMsg=`Al día · ${nc} productos con código${got?` · ${got} recibidos`:""}`;if(manual)toast("Copia de códigos al día en GitHub");if(got)render();break}
+      if(!same){const st=new Date().toLocaleString("es-ES");await ghPut("datos/codigos.json",body,J.sha,"Códigos de barras "+st);const C2=await ghGet("datos/codigos.csv");await ghPut("datos/codigos.csv",codesCsv(D.stock),C2.sha,"Códigos de barras (Excel) "+st);reg("codigo",`Copia de códigos subida a GitHub · ${nc} productos con código`)}
+      GH.sig=ghSig();if(MAIN)GH.ssig=stSig();GH.at=Date.now();ghStore();ghMsg=`Al día · ${nc} productos con código${got?` · ${got} recibidos`:""}`;if(manual)toast("Copia de códigos al día en GitHub");if(got)render();break}
     catch(e){if((e===409||e===422)&&k===0)continue;throw e}}}
   catch(e){ghMsg=ghErr(e);if(manual)toast(ghMsg)}
   ghBusy=false;ghPaint()}
 async function ghPull(){if(GH.t)return ghSync(false);if(location.protocol!=="https:"||!navigator.onLine)return;
   try{const r=await fetch("datos/codigos.json?t="+Date.now(),{cache:"no-store"});if(r.ok&&ghMerge(await r.json()))render()}catch(e){}}
-function ghAuto(){if(GH.t&&!ghBusy&&navigator.onLine&&GH.sig!==ghSig())ghSync(false)}
+function ghAuto(){if(GH.t&&!ghBusy&&navigator.onLine&&(GH.sig!==ghSig()||(MAIN&&GH.ssig!==stSig()&&Date.now()-(GH.at||0)>3600e3)))ghSync(false)}
 function ghPaint(){const el=document.getElementById("ghStatus");if(el)el.textContent=ghStatusText()}
 function ghStatusText(){if(ghMsg)return ghMsg;if(!GH.t)return"Sin configurar en este equipo";return GH.at?"Última copia: "+new Date(GH.at).toLocaleString("es-ES"):"Configurado; pendiente de la primera copia"}
 function ghSaveForm(){const g=id=>(document.getElementById(id)||{}).value||"";GH.o=g("ghO").trim();GH.r=g("ghR").trim();const t=g("ghT").trim();if(t)GH.t=t;GH.sig="";ghStore();reg("ajustes","Copia de códigos en GitHub configurada");toast("Guardado");ghSync(true)}
@@ -2123,6 +2134,7 @@ try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist()}
 lastReal=performance.now();
 setInterval(tick,400);
 render();
+if(loadBad){reg("sistema","Los datos guardados no se podían leer al abrir; se ha guardado una copia de rescate en este equipo");toast("Aviso: datos guardados ilegibles. Avisa antes de seguir.")}
 setTimeout(ghPull,1500);accPaint();setTimeout(()=>accCheck(false),1000);
 loadImgs().then(()=>{render();if(allImgFiles().some(f=>!IMGDATA["L:"+f]))downloadImgs(false)});
 })();
